@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -1358,10 +1357,7 @@ func launchProfile(profileID string) (*LaunchResult, error) {
 	profileDir := filepath.Join(dataDir, "profiles", prepared.ProfileID)
 
 	cmd := exec.Command(prepared.ChromePath, prepared.Args...)
-
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: 0x01000000 | 0x00000200,
-	}
+	setProcAttrs(cmd)
 
 	var cleanEnv []string
 	for _, e := range os.Environ() {
