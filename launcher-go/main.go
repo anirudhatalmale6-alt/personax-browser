@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	_ "embed"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -120,261 +119,7 @@ func init() {
 }
 
 // ---------------------------------------------------------------------------
-// Local profile & folder storage
-// ---------------------------------------------------------------------------
-
-var localProfiles []Profile
-var localFolders []Folder
-var localMu sync.Mutex
-
-func profilesFilePath() string { return filepath.Join(dataDir, "profiles.json") }
-func foldersFilePath() string  { return filepath.Join(dataDir, "folders.json") }
-
-func loadLocalProfiles() {
-	data, err := os.ReadFile(profilesFilePath())
-	if err != nil {
-		localProfiles = []Profile{}
-		return
-	}
-	json.Unmarshal(data, &localProfiles)
-	if localProfiles == nil {
-		localProfiles = []Profile{}
-	}
-}
-
-func saveLocalProfiles() {
-	data, _ := json.MarshalIndent(localProfiles, "", "  ")
-	os.WriteFile(profilesFilePath(), data, 0644)
-}
-
-func loadLocalFolders() {
-	data, err := os.ReadFile(foldersFilePath())
-	if err != nil {
-		localFolders = []Folder{}
-		return
-	}
-	json.Unmarshal(data, &localFolders)
-	if localFolders == nil {
-		localFolders = []Folder{}
-	}
-}
-
-func saveLocalFolders() {
-	data, _ := json.MarshalIndent(localFolders, "", "  ")
-	os.WriteFile(foldersFilePath(), data, 0644)
-}
-
-func generateID() string {
-	b := make([]byte, 8)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-func nowISO() string {
-	return time.Now().UTC().Format(time.RFC3339)
-}
-
-func handleLocalProfiles(w http.ResponseWriter, r *http.Request) {
-	localMu.Lock()
-	defer localMu.Unlock()
-
-	path := strings.TrimPrefix(r.URL.Path, "/api/profiles")
-	path = strings.TrimPrefix(path, "/")
-
-	switch r.Method {
-	case http.MethodGet:
-		if path == "" {
-			folderID := r.URL.Query().Get("folder_id")
-			filtered := localProfiles
-			if folderID != "" {
-				filtered = []Profile{}
-				for _, p := range localProfiles {
-					if p.FolderID == folderID {
-						filtered = append(filtered, p)
-					}
-				}
-			}
-			jsonOK(w, map[string]interface{}{"profiles": filtered})
-		} else {
-			pid := strings.Split(path, "/")[0]
-			for _, p := range localProfiles {
-				if p.ID == pid {
-					jsonOK(w, p)
-					return
-				}
-			}
-			jsonError(w, "Profile not found", 404)
-		}
-
-	case http.MethodPost:
-		var p Profile
-		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			jsonError(w, "Invalid JSON", 400)
-			return
-		}
-		p.ID = generateID()
-		p.CreatedAt = nowISO()
-		p.UpdatedAt = nowISO()
-		if p.WindowWidth == 0 {
-			p.WindowWidth = 1280
-		}
-		if p.WindowHeight == 0 {
-			p.WindowHeight = 720
-		}
-		for _, f := range localFolders {
-			if f.ID == p.FolderID {
-				p.FolderName = f.Name
-			}
-		}
-		localProfiles = append(localProfiles, p)
-		saveLocalProfiles()
-		go reportActivity("profile_created", p.ID)
-		jsonOK(w, p)
-
-	case http.MethodPut, http.MethodPatch:
-		pid := strings.Split(path, "/")[0]
-		var updates map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&updates)
-		for i, p := range localProfiles {
-			if p.ID == pid {
-				if v, ok := updates["name"].(string); ok {
-					localProfiles[i].Name = v
-				}
-				if v, ok := updates["proxy"].(string); ok {
-					localProfiles[i].Proxy = v
-				}
-				if v, ok := updates["folder_id"].(string); ok {
-					localProfiles[i].FolderID = v
-					for _, f := range localFolders {
-						if f.ID == v {
-							localProfiles[i].FolderName = f.Name
-						}
-					}
-				}
-				if v, ok := updates["notes"].(string); ok {
-					localProfiles[i].Notes = v
-				}
-				if v, ok := updates["startup_url"].(string); ok {
-					localProfiles[i].StartupURL = v
-				}
-				if v, ok := updates["user_agent"].(string); ok {
-					localProfiles[i].UserAgent = v
-				}
-				if v, ok := updates["window_width"].(float64); ok {
-					localProfiles[i].WindowWidth = int(v)
-				}
-				if v, ok := updates["window_height"].(float64); ok {
-					localProfiles[i].WindowHeight = int(v)
-				}
-				localProfiles[i].UpdatedAt = nowISO()
-				saveLocalProfiles()
-				go reportActivity("profile_updated", pid)
-				jsonOK(w, localProfiles[i])
-				return
-			}
-		}
-		jsonError(w, "Profile not found", 404)
-
-	case http.MethodDelete:
-		pid := strings.Split(path, "/")[0]
-		for i, p := range localProfiles {
-			if p.ID == pid {
-				localProfiles = append(localProfiles[:i], localProfiles[i+1:]...)
-				saveLocalProfiles()
-				profileDir := filepath.Join(dataDir, "profiles", pid)
-				os.RemoveAll(profileDir)
-				go reportActivity("profile_deleted", pid)
-				jsonOK(w, map[string]string{"status": "deleted"})
-				return
-			}
-		}
-		jsonError(w, "Profile not found", 404)
-	}
-}
-
-func handleLocalFolders(w http.ResponseWriter, r *http.Request) {
-	localMu.Lock()
-	defer localMu.Unlock()
-
-	path := strings.TrimPrefix(r.URL.Path, "/api/folders")
-	path = strings.TrimPrefix(path, "/")
-
-	switch r.Method {
-	case http.MethodGet:
-		for i := range localFolders {
-			count := 0
-			for _, p := range localProfiles {
-				if p.FolderID == localFolders[i].ID {
-					count++
-				}
-			}
-			localFolders[i].ProfileCount = count
-		}
-		jsonOK(w, map[string]interface{}{"folders": localFolders})
-
-	case http.MethodPost:
-		var f Folder
-		if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
-			jsonError(w, "Invalid JSON", 400)
-			return
-		}
-		f.ID = generateID()
-		f.CreatedAt = nowISO()
-		f.UpdatedAt = nowISO()
-		localFolders = append(localFolders, f)
-		saveLocalFolders()
-		jsonOK(w, f)
-
-	case http.MethodPut, http.MethodPatch:
-		fid := strings.Split(path, "/")[0]
-		var updates map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&updates)
-		for i, f := range localFolders {
-			if f.ID == fid {
-				if v, ok := updates["name"].(string); ok {
-					localFolders[i].Name = v
-				}
-				localFolders[i].UpdatedAt = nowISO()
-				saveLocalFolders()
-				jsonOK(w, localFolders[i])
-				return
-			}
-		}
-		jsonError(w, "Folder not found", 404)
-
-	case http.MethodDelete:
-		fid := strings.Split(path, "/")[0]
-		for i, f := range localFolders {
-			if f.ID == fid {
-				localFolders = append(localFolders[:i], localFolders[i+1:]...)
-				saveLocalFolders()
-				for j := range localProfiles {
-					if localProfiles[j].FolderID == fid {
-						localProfiles[j].FolderID = ""
-						localProfiles[j].FolderName = ""
-					}
-				}
-				saveLocalProfiles()
-				jsonOK(w, map[string]string{"status": "deleted"})
-				return
-			}
-		}
-		jsonError(w, "Folder not found", 404)
-	}
-}
-
-func handleLocalStats(w http.ResponseWriter, r *http.Request) {
-	localMu.Lock()
-	defer localMu.Unlock()
-	jsonOK(w, map[string]interface{}{
-		"profiles": len(localProfiles),
-		"folders":  len(localFolders),
-		"running":  len(processes),
-	})
-}
-
-// ---------------------------------------------------------------------------
-// Proxy encryption
+// Proxy encryption (hide PROXY.csv from install folder)
 // ---------------------------------------------------------------------------
 
 var proxyEncKey = []byte("B00R4T-PR0XY-S3CR3T-K3Y!2026!!")
@@ -480,26 +225,6 @@ func loadDecryptedProxies() []string {
 		}
 	}
 	return proxies
-}
-
-func isLicenseFullOrPremium() bool {
-	keyBytes, err := os.ReadFile(licenseFilePath())
-	if err != nil || len(keyBytes) == 0 {
-		return false
-	}
-	key := strings.TrimSpace(string(keyBytes))
-	machineID := getMachineID()
-	payload, _ := json.Marshal(map[string]string{"license_key": key, "machine_id": machineID})
-	resp, err := http.Post(licenseAPIBase+"/api/validate", "application/json", bytes.NewReader(payload))
-	if err != nil {
-		return true // allow offline
-	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(resp.Body)
-	var result map[string]interface{}
-	json.Unmarshal(respBody, &result)
-	tier, _ := result["tier"].(string)
-	return tier == "pro" || tier == "premium" || tier == "enterprise" || tier == "starter"
 }
 
 // ---------------------------------------------------------------------------
@@ -1274,7 +999,7 @@ type PrepareLaunchResult struct {
 
 func downloadProfileSync(profileID, profileDir string) {
 	srvURL := serverURL
-	if srvURL == "" || srvURL == "local" {
+	if srvURL == "" {
 		return
 	}
 	fastClient := &http.Client{Timeout: 3 * time.Second}
@@ -1302,7 +1027,7 @@ func downloadProfileSync(profileID, profileDir string) {
 
 func uploadProfileSync(profileID, profileDir string) {
 	srvURL := serverURL
-	if srvURL == "" || srvURL == "local" {
+	if srvURL == "" {
 		return
 	}
 	defaultDir := filepath.Join(profileDir, "Default")
@@ -1418,7 +1143,7 @@ func copyDir(src, dst string) {
 
 func updateDistribteConfig(extensionPaths []string) {
 	srvURL := serverURL
-	if srvURL == "" || srvURL == "local" {
+	if srvURL == "" {
 		return
 	}
 	fastClient := &http.Client{Timeout: 3 * time.Second}
@@ -1484,7 +1209,7 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 	srvURL := serverURL
 	mu.Unlock()
 
-	if srvURL == "" || srvURL == "local" {
+	if srvURL == "" {
 		return nil, fmt.Errorf("not connected to server")
 	}
 
@@ -1741,21 +1466,47 @@ func handleConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// BOORAT runs in local/standalone mode
+	var req ConnectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "Invalid request body", 400)
+		return
+	}
+
+	server := strings.TrimRight(req.Server, "/")
+	if server == "" {
+		jsonError(w, "server field required", 400)
+		return
+	}
+
+	statsURL := server + "/api/stats"
+	log.Printf("Testing connection to %s", statsURL)
+
+	resp, err := httpClient.Get(statsURL)
+	if err != nil {
+		jsonError(w, fmt.Sprintf("Failed to connect: %v", err), 502)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		jsonError(w, fmt.Sprintf("Failed to read response: %v", err), 502)
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		jsonError(w, fmt.Sprintf("Server returned %d: %s", resp.StatusCode, string(body)), resp.StatusCode)
+		return
+	}
+
+	var stats interface{}
+	json.Unmarshal(body, &stats)
+
 	mu.Lock()
-	serverURL = "local"
+	serverURL = server
 	mu.Unlock()
 
-	log.Printf("Connected in local standalone mode")
-
-	localMu.Lock()
-	stats := map[string]interface{}{
-		"profiles": len(localProfiles),
-		"folders":  len(localFolders),
-		"running":  len(processes),
-		"mode":     "standalone",
-	}
-	localMu.Unlock()
+	log.Printf("Connected to server: %s", server)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -1902,8 +1653,8 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 		Downloading:      downloading,
 		DownloadProgress: downloadProgress,
 		DownloadError:    downloadError,
-		ServerURL:        "local",
-		ServerConnected:  true,
+		ServerURL:        serverURL,
+		ServerConnected:  serverURL != "",
 	}
 	mu.Unlock()
 
@@ -1912,19 +1663,11 @@ func handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleProxyList(w http.ResponseWriter, r *http.Request) {
-	if !isLicenseFullOrPremium() {
-		jsonOK(w, map[string]interface{}{
-			"proxies": []string{},
-			"message": "Proxy access requires a full license",
-		})
-		return
-	}
-
 	proxies := loadDecryptedProxies()
 	if proxies == nil {
 		proxies = []string{}
 	}
-	log.Printf("Loaded %d proxies (encrypted)", len(proxies))
+	log.Printf("Loaded %d proxies (encrypted storage)", len(proxies))
 	jsonOK(w, map[string]interface{}{"proxies": proxies})
 }
 
@@ -2218,8 +1961,8 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	srvURL := serverURL
 	mu.Unlock()
 
-	if srvURL == "" || srvURL == "local" {
-		jsonOK(w, map[string]interface{}{"error": "local mode", "profiles": []string{}, "folders": []string{}})
+	if srvURL == "" {
+		jsonError(w, "Not connected to server", 503)
 		return
 	}
 
@@ -2422,18 +2165,10 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Local handlers (registered first — specific paths take priority)
-	// Load local data
-	loadLocalProfiles()
-	loadLocalFolders()
+	// Encrypt proxy file on startup (hides PROXY.csv)
 	ensureEncryptedProxy()
-	serverURL = "local"
 
 	mux.HandleFunc("/api/connect", withCORS(handleConnect))
-	mux.HandleFunc("/api/profiles/", withCORS(handleLocalProfiles))
-	mux.HandleFunc("/api/profiles", withCORS(handleLocalProfiles))
-	mux.HandleFunc("/api/folders/", withCORS(handleLocalFolders))
-	mux.HandleFunc("/api/folders", withCORS(handleLocalFolders))
-	mux.HandleFunc("/api/stats", withCORS(handleLocalStats))
 	mux.HandleFunc("/api/launch", withCORS(handleLaunch))
 	mux.HandleFunc("/api/prepare-launch", withCORS(handlePrepareLaunch))
 	mux.HandleFunc("/api/electron-notify", withCORS(handleElectronNotify))
