@@ -1513,6 +1513,118 @@ func handleOpenExtensionsFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
+// License validation
+// ---------------------------------------------------------------------------
+
+const licenseAPIBase = "https://nickets.xyz/license"
+
+func licenseFilePath() string {
+	return filepath.Join(dataDir, ".license")
+}
+
+func handleLicenseActivate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonError(w, "POST only", 405)
+		return
+	}
+	body, _ := io.ReadAll(r.Body)
+	var req map[string]string
+	json.Unmarshal(body, &req)
+	key := req["license_key"]
+	if key == "" {
+		jsonError(w, "license_key required", 400)
+		return
+	}
+
+	machineID := getMachineID()
+	payload, _ := json.Marshal(map[string]string{"license_key": key, "machine_id": machineID})
+	resp, err := http.Post(licenseAPIBase+"/api/validate", "application/json", bytes.NewReader(payload))
+	if err != nil {
+		jsonError(w, "Cannot reach license server: "+err.Error(), 502)
+		return
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+
+	var result map[string]interface{}
+	json.Unmarshal(respBody, &result)
+
+	if valid, ok := result["valid"].(bool); ok && valid {
+		os.WriteFile(licenseFilePath(), []byte(key), 0600)
+		log.Printf("License activated: %s", key)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(resp.StatusCode)
+	w.Write(respBody)
+}
+
+func handleLicenseStatus(w http.ResponseWriter, r *http.Request) {
+	keyBytes, err := os.ReadFile(licenseFilePath())
+	if err != nil || len(keyBytes) == 0 {
+		jsonOK(w, map[string]interface{}{"activated": false})
+		return
+	}
+	key := strings.TrimSpace(string(keyBytes))
+	machineID := getMachineID()
+	payload, _ := json.Marshal(map[string]string{"license_key": key, "machine_id": machineID})
+	resp, err := http.Post(licenseAPIBase+"/api/validate", "application/json", bytes.NewReader(payload))
+	if err != nil {
+		jsonOK(w, map[string]interface{}{"activated": true, "license_key": key, "offline": true})
+		return
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(resp.Body)
+
+	var result map[string]interface{}
+	json.Unmarshal(respBody, &result)
+	result["activated"] = true
+	result["license_key"] = key
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(mustJSON(result))
+}
+
+func handleLicenseDeactivate(w http.ResponseWriter, r *http.Request) {
+	os.Remove(licenseFilePath())
+	jsonOK(w, map[string]string{"status": "deactivated"})
+}
+
+func handleLicensePlans(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get(licenseAPIBase + "/api/plans")
+	if err != nil {
+		jsonError(w, "Cannot reach license server", 502)
+		return
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
+func getMachineID() string {
+	if runtime.GOOS == "windows" {
+		out, err := exec.Command("wmic", "csproduct", "get", "UUID").Output()
+		if err == nil {
+			lines := strings.Split(string(out), "\n")
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if line != "" && line != "UUID" {
+					return line
+				}
+			}
+		}
+	}
+	hostname, _ := os.Hostname()
+	return hostname
+}
+
+func mustJSON(v interface{}) []byte {
+	b, _ := json.Marshal(v)
+	return b
+}
+
+// ---------------------------------------------------------------------------
 // Proxy handler — forwards unmatched /api/* requests to remote server
 // ---------------------------------------------------------------------------
 
@@ -1719,6 +1831,10 @@ func main() {
 	mux.HandleFunc("/api/proxy-list", withCORS(handleProxyList))
 	mux.HandleFunc("/api/extensions", withCORS(handleExtensions))
 	mux.HandleFunc("/api/open-extensions", withCORS(handleOpenExtensionsFolder))
+	mux.HandleFunc("/api/license/activate", withCORS(handleLicenseActivate))
+	mux.HandleFunc("/api/license/status", withCORS(handleLicenseStatus))
+	mux.HandleFunc("/api/license/deactivate", withCORS(handleLicenseDeactivate))
+	mux.HandleFunc("/api/license/plans", withCORS(handleLicensePlans))
 	mux.HandleFunc("/api/quit", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(200)

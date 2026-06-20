@@ -465,6 +465,192 @@
   #content input[type="checkbox"] {
     accent-color: #7c3aed !important;
   }
+
+  /* ===== License Activation Modal ===== */
+  .license-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 500;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(12px);
+  }
+  .license-modal-overlay.show { display: flex; }
+  .license-modal {
+    background: #1e1e3a; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; width: 480px; max-width: 90vw;
+    box-shadow: 0 32px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,0.03), 0 0 120px rgba(124,58,237,0.08);
+    padding: 48px 40px 40px; text-align: center;
+  }
+  .license-logo {
+    width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 20px;
+    background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 50%, #14b8a6 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: 700; color: #fff;
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .license-title {
+    font-size: 22px; font-weight: 700; color: #ffffff; margin-bottom: 8px;
+    background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .license-subtitle {
+    font-size: 14px; color: #9ca3af; margin-bottom: 28px; line-height: 1.5;
+  }
+  .license-input-wrap {
+    position: relative; margin-bottom: 16px;
+  }
+  .license-input-wrap input {
+    width: 100%; background: #1a1a35; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 14px 18px; color: #e2e8f0; font-size: 14px;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-weight: 500; outline: none; transition: all .2s; text-align: center;
+    letter-spacing: 0.05em;
+  }
+  .license-input-wrap input::placeholder { color: #4b5563; letter-spacing: 0.03em; font-size: 12px; }
+  .license-input-wrap input:focus {
+    border-color: rgba(124, 58, 237, 0.6); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    background: rgba(124, 58, 237, 0.05);
+  }
+  .license-error {
+    font-size: 12px; color: #f87171; margin-bottom: 16px; min-height: 18px;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .license-activate-btn {
+    width: 100%; padding: 14px 24px; border-radius: 12px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+    transition: all .2s ease;
+  }
+  .license-activate-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(16, 185, 129, 0.4); }
+  .license-activate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .license-activate-btn.loading { pointer-events: none; opacity: 0.7; }
+  .license-view-plans {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 18px; font-size: 13px; color: #7c3aed; cursor: pointer;
+    font-weight: 600; border: none; background: none; font-family: inherit;
+    transition: color .2s;
+  }
+  .license-view-plans:hover { color: #a78bfa; }
+  .license-expired-msg {
+    background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.25);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 20px;
+    font-size: 12px; color: #fbbf24; font-weight: 500;
+  }
+
+  /* ===== Plans Modal ===== */
+  .plans-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 510;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  .plans-modal-overlay.show { display: flex; }
+  .plans-modal {
+    background: #1e1e3a; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; width: 900px; max-width: 95vw;
+    box-shadow: 0 32px 64px rgba(0,0,0,.5);
+    padding: 36px 36px 32px; max-height: 90vh; overflow-y: auto;
+  }
+  .plans-header {
+    text-align: center; margin-bottom: 32px;
+  }
+  .plans-header h2 {
+    font-size: 24px; font-weight: 700; color: #ffffff; margin-bottom: 8px;
+  }
+  .plans-header p { font-size: 14px; color: #9ca3af; }
+  .plans-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+    margin-bottom: 24px;
+  }
+  .plan-card {
+    background: #12122a; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 28px 24px; position: relative;
+    transition: all .3s ease;
+  }
+  .plan-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-3px); }
+  .plan-card.popular {
+    border-color: rgba(124, 58, 237, 0.4);
+    background: linear-gradient(180deg, rgba(124,58,237,0.08) 0%, #12122a 40%);
+    box-shadow: 0 8px 32px rgba(124, 58, 237, 0.15);
+  }
+  .plan-popular-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff;
+    padding: 4px 16px; border-radius: 20px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+  }
+  .plan-name { font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 8px; }
+  .plan-price { font-size: 36px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }
+  .plan-price span { font-size: 14px; color: #6b7280; font-weight: 500; }
+  .plan-features { list-style: none; padding: 0; margin: 20px 0 0; }
+  .plan-features li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #9ca3af; padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+  .plan-features li:last-child { border-bottom: none; }
+  .plan-check { color: #10b981; font-size: 14px; flex-shrink: 0; }
+  .plans-footer {
+    text-align: center; padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .plans-footer p { font-size: 13px; color: #6b7280; }
+  .plans-close-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: #6b7280; font-size: 20px;
+    cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all .2s;
+  }
+  .plans-close-btn:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+
+  /* ===== Right Panel License Status ===== */
+  .rp-license-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 6px; font-size: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .rp-license-badge.starter { background: rgba(34, 197, 94, 0.1); color: #34d399; border: 1px solid rgba(34, 197, 94, 0.25); }
+  .rp-license-badge.pro { background: rgba(124, 58, 237, 0.15); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.25); }
+  .rp-license-badge.enterprise { background: rgba(234, 179, 8, 0.1); color: #fbbf24; border: 1px solid rgba(234, 179, 8, 0.25); }
+
+  .rp-usage-row { margin-bottom: 12px; }
+  .rp-usage-label {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; font-weight: 600; color: #9ca3af; margin-bottom: 5px;
+  }
+  .rp-usage-bar {
+    width: 100%; height: 6px; background: #1a1a35; border-radius: 4px; overflow: hidden;
+  }
+  .rp-usage-bar-fill {
+    height: 100%; border-radius: 4px; transition: width .4s ease;
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.3);
+  }
+  .rp-usage-bar-fill.warning { background: linear-gradient(90deg, #eab308, #f59e0b); box-shadow: 0 0 8px rgba(234, 179, 8, 0.3); }
+  .rp-usage-bar-fill.danger { background: linear-gradient(90deg, #dc2626, #ef4444); box-shadow: 0 0 8px rgba(220, 38, 38, 0.3); }
+
+  .rp-upgrade-card {
+    background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, rgba(59,130,246,0.05) 100%);
+    border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 12px; padding: 14px;
+    text-align: center;
+  }
+  .rp-upgrade-title { font-size: 13px; font-weight: 700; color: #a78bfa; margin-bottom: 4px; }
+  .rp-upgrade-text { font-size: 11px; color: #6b7280; margin-bottom: 10px; }
+  .rp-upgrade-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 7px 18px; border-radius: 8px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: #fff;
+    font-size: 12px; font-weight: 600; font-family: inherit;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+    transition: all .2s;
+  }
+  .rp-upgrade-btn:hover { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); transform: translateY(-1px); }
+
+  .rp-expiry-info {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: #6b7280; margin-top: 6px;
+  }
+  .rp-expiry-info.warning { color: #fbbf24; }
+  .rp-expiry-info.danger { color: #f87171; }
 </style>
 </head>
 <body>
@@ -574,12 +760,41 @@
       <div class="rp-workspace">
         <div class="rp-workspace-icon">B</div>
         <div class="rp-workspace-info">
-          <div class="rp-workspace-title">BOORAT</div>
+          <div class="rp-workspace-title">BOORAT <span class="rp-license-badge" id="rpTierBadge" style="display:none;">-</span></div>
           <div class="rp-workspace-sub">Local Workspace</div>
           <div class="rp-workspace-status" id="rpConnectionStatus">
             <span class="dot dot-green"></span> Connected
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Subscription Usage Card -->
+    <div class="rp-card" id="rpSubscriptionCard" style="display:none;">
+      <div class="rp-section-header" style="margin-bottom:12px;">
+        <span class="rp-section-title">Workspace Usage</span>
+        <span class="rp-section-link" onclick="License.showPlans()" style="cursor:pointer;">View Plans</span>
+      </div>
+      <div class="rp-usage-row">
+        <div class="rp-usage-label">
+          <span>Profiles</span>
+          <span id="rpProfileUsage">0 / 0</span>
+        </div>
+        <div class="rp-usage-bar">
+          <div class="rp-usage-bar-fill" id="rpProfileBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="rp-usage-row">
+        <div class="rp-usage-label">
+          <span>Storage</span>
+          <span id="rpStorageUsage">0 MB / 0 GB</span>
+        </div>
+        <div class="rp-usage-bar">
+          <div class="rp-usage-bar-fill" id="rpStorageBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="rp-expiry-info" id="rpExpiryInfo">
+        <span>&#128197;</span> <span id="rpDaysRemaining">-</span>
       </div>
     </div>
 
@@ -609,6 +824,13 @@
         <span class="rp-section-link">View all</span>
       </div>
       <div id="rpActivityFeed"></div>
+    </div>
+
+    <!-- Upgrade Card (shown for Starter tier) -->
+    <div id="rpUpgradeCard" class="rp-upgrade-card" style="display:none;">
+      <div class="rp-upgrade-title">Upgrade to Pro</div>
+      <div class="rp-upgrade-text">Unlock 20,000 profiles, RPA automation, and team management.</div>
+      <button class="rp-upgrade-btn" onclick="License.showPlans()">View Plans &#8594;</button>
     </div>
 
     <div class="rp-protip">
@@ -751,6 +973,75 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="App.closeModal('logModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- License Activation Modal -->
+<div class="license-modal-overlay" id="licenseModal">
+  <div class="license-modal">
+    <div class="license-logo">B</div>
+    <div class="license-title">BOORAT</div>
+    <div class="license-subtitle">Enter your license key to get started</div>
+    <div id="licenseExpiredBanner" class="license-expired-msg" style="display:none;">Your license has expired. Please enter a new license key to continue.</div>
+    <div class="license-input-wrap">
+      <input type="text" id="licenseKeyInput" placeholder="BOORAT-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="license-error" id="licenseError">&nbsp;</div>
+    <button class="license-activate-btn" id="licenseActivateBtn" onclick="License.activate()">Activate</button>
+    <button class="license-view-plans" onclick="License.showPlans()">View Plans &#8594;</button>
+  </div>
+</div>
+
+<!-- Plans Modal -->
+<div class="plans-modal-overlay" id="plansModal">
+  <div class="plans-modal" style="position:relative;">
+    <button class="plans-close-btn" onclick="License.closePlans()">&times;</button>
+    <div class="plans-header">
+      <h2>Choose Your Plan</h2>
+      <p>Select the plan that fits your needs</p>
+    </div>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$100<span>/mo</span></div>
+        <ul class="plan-features">
+          <li><span class="plan-check">&#10003;</span> 5,000 profiles</li>
+          <li><span class="plan-check">&#10003;</span> 10 GB storage</li>
+          <li><span class="plan-check">&#10003;</span> Browser fingerprinting</li>
+          <li><span class="plan-check">&#10003;</span> Proxy support</li>
+          <li><span class="plan-check">&#10003;</span> Profile import/export</li>
+          <li><span class="plan-check">&#10003;</span> Email support</li>
+        </ul>
+      </div>
+      <div class="plan-card popular">
+        <div class="plan-popular-badge">Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$500<span>/mo</span></div>
+        <ul class="plan-features">
+          <li><span class="plan-check">&#10003;</span> 20,000 profiles</li>
+          <li><span class="plan-check">&#10003;</span> 50 GB storage</li>
+          <li><span class="plan-check">&#10003;</span> Everything in Starter</li>
+          <li><span class="plan-check">&#10003;</span> RPA automation</li>
+          <li><span class="plan-check">&#10003;</span> Team management</li>
+          <li><span class="plan-check">&#10003;</span> Priority support</li>
+        </ul>
+      </div>
+      <div class="plan-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">$1,000<span>/mo</span></div>
+        <ul class="plan-features">
+          <li><span class="plan-check">&#10003;</span> 100,000 profiles</li>
+          <li><span class="plan-check">&#10003;</span> 200 GB storage</li>
+          <li><span class="plan-check">&#10003;</span> Everything in Pro</li>
+          <li><span class="plan-check">&#10003;</span> Custom integrations</li>
+          <li><span class="plan-check">&#10003;</span> Dedicated account manager</li>
+          <li><span class="plan-check">&#10003;</span> SLA guarantee</li>
+        </ul>
+      </div>
+    </div>
+    <div class="plans-footer">
+      <p>Contact your admin for a license key &mdash; <strong>support@boorat.xyz</strong></p>
     </div>
   </div>
 </div>
@@ -1226,10 +1517,16 @@ var App = (function() {
         })
         .catch(function(err) { toast('Update failed: ' + err.message, 'error'); });
     } else {
+      // Check license profile limit before creating
+      if (typeof License !== 'undefined' && !License.canCreateProfile()) return;
       api('POST', '/api/profiles', body)
         .then(function() {
           toast('Profile created', 'success');
           closeModal('profileModal');
+          // Update license info profile count
+          if (window.licenseInfo && window.licenseInfo.profiles_used !== undefined) {
+            window.licenseInfo.profiles_used++;
+          }
           return refresh();
         })
         .catch(function(err) { toast('Create failed: ' + err.message, 'error'); });
@@ -1523,10 +1820,15 @@ var App = (function() {
           toast('Invalid file: missing profile data', 'error');
           return;
         }
+        // Check license profile limit before importing
+        if (typeof License !== 'undefined' && !License.canCreateProfile()) return;
         api('POST', '/api/profiles/import', data)
           .then(function(result) {
             var importedName = (result.profile && result.profile.name) || 'Profile';
             toast('Imported: ' + importedName, 'success');
+            if (window.licenseInfo && window.licenseInfo.profiles_used !== undefined) {
+              window.licenseInfo.profiles_used++;
+            }
             return refresh();
           })
           .catch(function(err) { toast('Import failed: ' + err.message, 'error'); });
@@ -1917,6 +2219,8 @@ var App = (function() {
   }
 
   function bulkCreate() {
+    // Check license profile limit before bulk creating
+    if (typeof License !== 'undefined' && !License.canCreateProfile()) return;
     var ids = document.getElementById('bulkIds').value.trim();
     if (!ids) { toast('Enter at least one profile ID', 'error'); return; }
     var btn = document.getElementById('bulkCreateBtn');
@@ -1963,6 +2267,300 @@ var App = (function() {
     var splash = document.getElementById('splashScreen');
     if (splash) splash.classList.add('hidden');
   }, 2500);
+</script>
+<script>
+/**
+ * BOORAT License Management Module
+ * Handles license activation, status display, and profile limit enforcement.
+ */
+var License = (function() {
+  'use strict';
+
+  // Global license info accessible via window.licenseInfo
+  window.licenseInfo = null;
+
+  function esc(s) {
+    if (!s) return '';
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(s));
+    return d.innerHTML;
+  }
+
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'toast' + (type ? ' toast-' + type : '');
+    el.textContent = msg;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(function() { el.remove(); }, 4000);
+  }
+
+  // ─── Check license on page load ─────────────────────────────────────
+  function checkLicense() {
+    fetch('/api/license/status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        window.licenseInfo = data;
+
+        if (!data.activated) {
+          showActivationModal(false);
+          return;
+        }
+
+        // Check if expired
+        if (data.days_remaining !== undefined && data.days_remaining <= 0) {
+          showActivationModal(true);
+          return;
+        }
+
+        // Valid license - update UI
+        hideActivationModal();
+        updateSubscriptionUI(data);
+      })
+      .catch(function(err) {
+        // If the license endpoint fails, don't block usage but log it
+        console.warn('License check failed:', err);
+      });
+  }
+
+  // ─── Activation Modal ───────────────────────────────────────────────
+  function showActivationModal(expired) {
+    var modal = document.getElementById('licenseModal');
+    var banner = document.getElementById('licenseExpiredBanner');
+    var errorEl = document.getElementById('licenseError');
+
+    errorEl.innerHTML = '&nbsp;';
+    document.getElementById('licenseKeyInput').value = '';
+
+    if (expired) {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+
+    modal.classList.add('show');
+  }
+
+  function hideActivationModal() {
+    var modal = document.getElementById('licenseModal');
+    modal.classList.remove('show');
+  }
+
+  // ─── Activate License ──────────────────────────────────────────────
+  function activate() {
+    var input = document.getElementById('licenseKeyInput');
+    var btn = document.getElementById('licenseActivateBtn');
+    var errorEl = document.getElementById('licenseError');
+    var key = input.value.trim();
+
+    if (!key) {
+      errorEl.textContent = 'Please enter a license key';
+      return;
+    }
+
+    // Basic format validation
+    if (key.indexOf('BOORAT-') !== 0) {
+      errorEl.textContent = 'Invalid format. Key must start with BOORAT-';
+      return;
+    }
+
+    errorEl.innerHTML = '&nbsp;';
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.textContent = 'Activating...';
+
+    fetch('/api/license/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ license_key: key })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = 'Activate';
+
+      if (data.error) {
+        errorEl.textContent = data.error;
+        return;
+      }
+
+      if (data.activated || data.valid) {
+        // Activation successful
+        toast('License activated successfully!', 'success');
+        hideActivationModal();
+
+        // Refresh license status
+        return fetch('/api/license/status')
+          .then(function(r) { return r.json(); })
+          .then(function(status) {
+            window.licenseInfo = status;
+            updateSubscriptionUI(status);
+          });
+      } else {
+        errorEl.textContent = data.message || 'Invalid license key. Please try again.';
+      }
+    })
+    .catch(function(err) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = 'Activate';
+      errorEl.textContent = 'Connection error. Please try again.';
+    });
+  }
+
+  // ─── Deactivate License ────────────────────────────────────────────
+  function deactivate() {
+    fetch('/api/license/deactivate', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function() {
+        window.licenseInfo = null;
+        clearSubscriptionUI();
+        showActivationModal(false);
+        toast('License deactivated', 'success');
+      })
+      .catch(function(err) {
+        toast('Deactivation failed: ' + err.message, 'error');
+      });
+  }
+
+  // ─── Plans Modal ───────────────────────────────────────────────────
+  function showPlans() {
+    document.getElementById('plansModal').classList.add('show');
+  }
+
+  function closePlans() {
+    document.getElementById('plansModal').classList.remove('show');
+  }
+
+  // ─── Update Right Panel Subscription UI ────────────────────────────
+  function updateSubscriptionUI(info) {
+    if (!info || !info.activated) return;
+
+    var tier = (info.tier || 'starter').toLowerCase();
+    var tierDisplay = tier.charAt(0).toUpperCase() + tier.slice(1);
+
+    // Tier badge
+    var badge = document.getElementById('rpTierBadge');
+    badge.textContent = tierDisplay.toUpperCase();
+    badge.className = 'rp-license-badge ' + tier;
+    badge.style.display = 'inline-flex';
+
+    // Subscription card
+    var subCard = document.getElementById('rpSubscriptionCard');
+    subCard.style.display = '';
+
+    // Profile usage
+    var profilesUsed = info.profiles_used || 0;
+    var profilesMax = info.max_profiles || 0;
+    var profilePct = profilesMax > 0 ? Math.min((profilesUsed / profilesMax) * 100, 100) : 0;
+
+    document.getElementById('rpProfileUsage').textContent = profilesUsed.toLocaleString() + ' / ' + profilesMax.toLocaleString();
+    var profileBar = document.getElementById('rpProfileBar');
+    profileBar.style.width = profilePct + '%';
+    profileBar.className = 'rp-usage-bar-fill';
+    if (profilePct >= 90) profileBar.classList.add('danger');
+    else if (profilePct >= 75) profileBar.classList.add('warning');
+
+    // Storage usage
+    var storageUsedMB = info.storage_used_mb || 0;
+    var storageMaxGB = 10; // defaults
+    if (tier === 'pro') storageMaxGB = 50;
+    else if (tier === 'enterprise') storageMaxGB = 200;
+    if (info.max_storage_gb) storageMaxGB = info.max_storage_gb;
+
+    var storagePct = storageMaxGB > 0 ? Math.min((storageUsedMB / (storageMaxGB * 1024)) * 100, 100) : 0;
+    var storageDisplay = storageUsedMB >= 1024 ? (storageUsedMB / 1024).toFixed(1) + ' GB' : storageUsedMB + ' MB';
+    document.getElementById('rpStorageUsage').textContent = storageDisplay + ' / ' + storageMaxGB + ' GB';
+    var storageBar = document.getElementById('rpStorageBar');
+    storageBar.style.width = storagePct + '%';
+    storageBar.className = 'rp-usage-bar-fill';
+    if (storagePct >= 90) storageBar.classList.add('danger');
+    else if (storagePct >= 75) storageBar.classList.add('warning');
+
+    // Days remaining
+    var daysEl = document.getElementById('rpDaysRemaining');
+    var expiryWrap = document.getElementById('rpExpiryInfo');
+    var days = info.days_remaining;
+    if (days !== undefined && days !== null) {
+      daysEl.textContent = days + ' days remaining';
+      expiryWrap.className = 'rp-expiry-info';
+      if (days <= 7) expiryWrap.classList.add('danger');
+      else if (days <= 14) expiryWrap.classList.add('warning');
+    } else {
+      daysEl.textContent = 'Active';
+    }
+
+    // Upgrade card (show only for starter)
+    var upgradeCard = document.getElementById('rpUpgradeCard');
+    if (tier === 'starter') {
+      upgradeCard.style.display = '';
+    } else {
+      upgradeCard.style.display = 'none';
+    }
+  }
+
+  function clearSubscriptionUI() {
+    document.getElementById('rpTierBadge').style.display = 'none';
+    document.getElementById('rpSubscriptionCard').style.display = 'none';
+    document.getElementById('rpUpgradeCard').style.display = 'none';
+  }
+
+  // ─── Profile Limit Enforcement ─────────────────────────────────────
+  function canCreateProfile() {
+    var info = window.licenseInfo;
+    if (!info || !info.activated) {
+      toast('No active license. Please activate your license first.', 'error');
+      return false;
+    }
+    if (info.days_remaining !== undefined && info.days_remaining <= 0) {
+      toast('License expired. Please renew your license.', 'error');
+      return false;
+    }
+    var used = info.profiles_used || 0;
+    var max = info.max_profiles || 0;
+    if (max > 0 && used >= max) {
+      toast('Profile limit reached. Upgrade your plan.', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  // ─── Initialize ────────────────────────────────────────────────────
+  // Check license on page load (with a small delay to let splash show)
+  setTimeout(function() { checkLicense(); }, 1500);
+
+  // Re-check license periodically (every 60 seconds)
+  setInterval(function() {
+    fetch('/api/license/status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        window.licenseInfo = data;
+        if (data.activated && (data.days_remaining === undefined || data.days_remaining > 0)) {
+          updateSubscriptionUI(data);
+        }
+      })
+      .catch(function() {});
+  }, 60000);
+
+  // Handle Enter key on license input
+  document.getElementById('licenseKeyInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') activate();
+  });
+
+  // Plans modal close on outside click
+  document.getElementById('plansModal').addEventListener('click', function(e) {
+    if (e.target === this) closePlans();
+  });
+
+  return {
+    activate: activate,
+    deactivate: deactivate,
+    showPlans: showPlans,
+    closePlans: closePlans,
+    checkLicense: checkLicense,
+    canCreateProfile: canCreateProfile
+  };
+})();
 </script>
 <script>
 /**
