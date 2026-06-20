@@ -30,7 +30,7 @@ jobs:
           GOOS: windows
           GOARCH: amd64
           CGO_ENABLED: '0'
-        run: go build -ldflags="-s -w -H windowsgui" -o boorat-server.exe main.go
+        run: go build -ldflags="-s -w -H windowsgui" -o boorat-server.exe .
 
       - name: Install Electron dependencies
         working-directory: electron
@@ -67,7 +67,7 @@ jobs:
           GOOS: darwin
           GOARCH: amd64
           CGO_ENABLED: '0'
-        run: go build -ldflags="-s -w" -o boorat-server-x64 main.go
+        run: go build -ldflags="-s -w" -o boorat-server-x64 .
 
       - name: Build Go server binary (Mac Apple Silicon)
         working-directory: launcher-go
@@ -75,7 +75,7 @@ jobs:
           GOOS: darwin
           GOARCH: arm64
           CGO_ENABLED: '0'
-        run: go build -ldflags="-s -w" -o boorat-server-arm64 main.go
+        run: go build -ldflags="-s -w" -o boorat-server-arm64 .
 
       - name: Install Electron dependencies
         working-directory: electron
