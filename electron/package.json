@@ -1,6 +1,6 @@
 {
   "name": "boorat",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Boorat Anti-Detect Browser",
   "main": "main.js",
   "author": "Boorat",
@@ -38,7 +38,48 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "extraResources": [
+        {
+          "from": "../launcher-go/boorat-server.exe",
+          "to": "boorat-server.exe"
+        },
+        {
+          "from": "../launcher-go/builtin-extensions",
+          "to": "builtin-extensions",
+          "filter": ["**/*"]
+        },
+        {
+          "from": "../launcher-go/PROXY.csv",
+          "to": "PROXY.csv"
+        }
+      ]
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "icon.png",
+      "category": "public.app-category.utilities",
+      "artifactName": "BooratSetup-mac-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "../launcher-go/boorat-server-${arch}",
+          "to": "boorat-server"
+        },
+        {
+          "from": "../launcher-go/builtin-extensions",
+          "to": "builtin-extensions",
+          "filter": ["**/*"]
+        },
+        {
+          "from": "../launcher-go/PROXY.csv",
+          "to": "PROXY.csv"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -46,21 +87,6 @@
       "perMachine": true,
       "shortcutName": "BOORAT",
       "menuCategory": true
-    },
-    "extraResources": [
-      {
-        "from": "../launcher-go/boorat-server.exe",
-        "to": "boorat-server.exe"
-      },
-      {
-        "from": "../launcher-go/builtin-extensions",
-        "to": "builtin-extensions",
-        "filter": ["**/*"]
-      },
-      {
-        "from": "../launcher-go/PROXY.csv",
-        "to": "PROXY.csv"
-      }
-    ]
+    }
   }
 }

@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build Go server binary
+      - name: Build Go server binary (Windows)
         working-directory: launcher-go
         env:
           GOOS: windows
@@ -36,7 +36,7 @@ jobs:
         working-directory: electron
         run: npm install
 
-      - name: Build and publish Electron installer
+      - name: Build and publish Windows installer
         working-directory: electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -45,3 +45,48 @@ jobs:
       - name: List build output
         run: dir electron\dist\
         shell: cmd
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Go server binary (Mac Intel)
+        working-directory: launcher-go
+        env:
+          GOOS: darwin
+          GOARCH: amd64
+          CGO_ENABLED: '0'
+        run: go build -ldflags="-s -w" -o boorat-server-x64 main.go
+
+      - name: Build Go server binary (Mac Apple Silicon)
+        working-directory: launcher-go
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+          CGO_ENABLED: '0'
+        run: go build -ldflags="-s -w" -o boorat-server-arm64 main.go
+
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm install
+
+      - name: Build and publish Mac installer
+        working-directory: electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac --x64 --arm64 --publish always
+
+      - name: List build output
+        run: ls -la electron/dist/

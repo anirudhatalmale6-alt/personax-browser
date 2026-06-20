@@ -23,10 +23,12 @@ function getResourcesPath() {
 
 function getServerExe() {
   const resPath = getResourcesPath()
+  const isWin = process.platform === 'win32'
+  const binName = isWin ? 'boorat-server.exe' : 'boorat-server'
   if (app.isPackaged) {
-    return path.join(resPath, 'boorat-server.exe')
+    return path.join(resPath, binName)
   }
-  return path.join(resPath, 'launcher-go', 'boorat-server.exe')
+  return path.join(resPath, 'launcher-go', binName)
 }
 
 function copyDirSync(src, dest) {
