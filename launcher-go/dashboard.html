@@ -1438,6 +1438,23 @@ var App = (function() {
 
     // Hide trash (owner only)  
     document.querySelectorAll('[onclick*="showTrash"]').forEach(function(el) { el.style.display = 'none'; });
+
+    // Show member badge instead of plan name
+    var tierBadge = document.getElementById('rpTierBadge');
+    if (tierBadge) {
+      tierBadge.textContent = 'MEMBER';
+      tierBadge.style.background = 'rgba(59,130,246,0.15)';
+      tierBadge.style.color = '#60a5fa';
+      tierBadge.style.display = '';
+    }
+    var wsTitle = document.querySelector('.rp-workspace-title');
+    if (wsTitle) {
+      wsTitle.innerHTML = 'PERSONAX <span class="rp-license-badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;">MEMBER</span>';
+    }
+    var wsSubtitle = document.querySelector('.rp-workspace-subtitle');
+    if (wsSubtitle) {
+      wsSubtitle.textContent = m.email || m.username || 'Member Account';
+    }
   }
 
   function selectFolder(folderId) {
@@ -2835,6 +2852,9 @@ var License = (function() {
       window.isMemberLogin = false;
       setTimeout(function(){ var el = document.getElementById('licenseKeyInput'); if(el) { el.blur(); el.focus(); } }, 100);
     }
+    if (tab === 'member') {
+      setTimeout(function(){ var el = document.getElementById('memberUsername'); if(el) { el.blur(); el.focus(); } }, 100);
+    }
   }
 
   function memberLogin() {
@@ -2882,9 +2902,11 @@ var License = (function() {
   }
 
 function activate() {
-    // If logging in with license key (not member), clear member restrictions
-    if (!window.isMemberLogin) {
+    // Check if this is a license key login (not triggered by member login)
+    var isLicenseTab = document.getElementById('licenseTab').style.display !== 'none';
+    if (isLicenseTab) {
       window.memberInfo = null;
+      window.isMemberLogin = false;
     }
     var input = document.getElementById('licenseKeyInput');
     var btn = document.getElementById('licenseActivateBtn');
