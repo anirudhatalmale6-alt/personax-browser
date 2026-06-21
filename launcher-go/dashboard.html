@@ -1411,6 +1411,27 @@ var App = (function() {
 
 
   // Permission enforcement for member login
+
+  function resetPermissions() {
+    // Show all buttons that enforcePermissions might have hidden
+    document.querySelectorAll('[onclick*="showCreateModal"], [onclick*="showBulkModal"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('[onclick*="confirmDeleteProfile"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('[onclick*="showEditModal"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('#moveBtn').forEach(function(el) { el.style.display = 'none'; }); // moveBtn hidden by default
+    document.querySelectorAll('.profile-cb').forEach(function(el) { el.style.display = ''; });
+    var selectAll = document.getElementById('selectAllProfiles');
+    if (selectAll) selectAll.style.display = '';
+    document.querySelectorAll('[onclick*="toggleAddFolder"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('[onclick*="showTeamPanel"]').forEach(function(el) { el.style.display = ''; });
+    document.querySelectorAll('[onclick*="showTrash"]').forEach(function(el) { el.style.display = ''; });
+    // Reset workspace title back to owner style
+    var wsTitle = document.querySelector('.rp-workspace-title');
+    if (wsTitle && window.licenseInfo) {
+      var tierName = (window.licenseInfo.tier_name || window.licenseInfo.tier || '').toUpperCase();
+      wsTitle.innerHTML = 'PERSONAX <span class="rp-license-badge" id="rpTierBadge" style="display:' + (tierName ? '' : 'none') + ';">' + tierName + '</span>';
+    }
+  }
+
   function enforcePermissions() {
     if (!window.isMemberLogin || !window.memberInfo) return;
     var m = window.memberInfo;
@@ -1447,6 +1468,10 @@ var App = (function() {
 
     // Hide trash (owner only)  
     document.querySelectorAll('[onclick*="showTrash"]').forEach(function(el) { el.style.display = 'none'; });
+
+    // Hide license key display for members
+    var keyDisplay = document.querySelector('.rp-license-key');
+    if (keyDisplay) keyDisplay.style.display = 'none';
 
     // Show member badge instead of plan name
     var tierBadge = document.getElementById('rpTierBadge');
@@ -2724,6 +2749,7 @@ var App = (function() {
     permanentDelete: permanentDelete,
     emptyTrash: emptyTrash,
     enforcePermissions: enforcePermissions,
+    resetPermissions: resetPermissions,
     getProfileCount: function() { return state.profiles ? state.profiles.length : 0; },
     selectFolder: selectFolder,
     toggleSelectAll: toggleSelectAll,
@@ -2932,6 +2958,7 @@ var License = (function() {
     if (tab === 'license') {
       window.memberInfo = null;
       window.isMemberLogin = false;
+      if (typeof resetPermissions === 'function') resetPermissions();
       setTimeout(function(){ var el = document.getElementById('licenseKeyInput'); if(el) { el.blur(); el.focus(); } }, 100);
     }
     if (tab === 'member') {
@@ -2989,6 +3016,7 @@ function activate() {
     if (isLicenseTab) {
       window.memberInfo = null;
       window.isMemberLogin = false;
+      resetPermissions();
     }
     var input = document.getElementById('licenseKeyInput');
     var btn = document.getElementById('licenseActivateBtn');
