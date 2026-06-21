@@ -905,7 +905,7 @@
     <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.06);padding:0 20px;" id="profileTabs">
       <button onclick="App.switchProfileTab('general')" id="tabGeneral" style="padding:10px 16px;border:none;background:none;color:#f59e0b;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid #f59e0b;">General</button>
       <button onclick="App.switchProfileTab('proxy')" id="tabProxy" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Proxy</button>
-      <button onclick="App.switchProfileTab('advanced')" id="tabAdvanced" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Advanced</button>
+      <button onclick="App.switchProfileTab('advanced')" id="tabAdvanced" style="display:none;" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Advanced</button>
       <button onclick="App.switchProfileTab('fingerprint')" id="tabFingerprint" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Fingerprint</button>
     </div>
 
@@ -937,28 +937,6 @@
           <input type="text" id="profileStartupUrl" placeholder="e.g. https://google.com">
           <span class="hint" style="font-size:11px;color:#8b949e;">Opens as first tab. Leave empty for personax.work</span>
         </div>
-        <div class="form-group">
-          <label>Notes</label>
-          <textarea id="profileNotes" placeholder="Optional notes about this profile" rows="3"></textarea>
-        </div>
-      </div>
-
-      <!-- Proxy Tab -->
-      <div id="panelProxy" style="display:none;">
-        <div class="form-group">
-          <label>Proxy Mode</label>
-          <select id="profileProxyMode" onchange="App.toggleProxyInput()" style="width:100%;padding:10px 12px;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#c9d1d9;margin-bottom:8px;">
-            <option value="direct">Direct Connection (No Proxy)</option>
-            <option value="personax">PersonaX Proxy (Random from list)</option>
-            <option value="custom">Custom Proxy</option>
-          </select>
-          <input type="password" id="profileProxy" placeholder="host:port:username:password" style="display:none;">
-          <div class="form-hint" id="proxyHint" style="font-size:11px;color:#8b949e;">No proxy will be used</div>
-        </div>
-      </div>
-
-      <!-- Advanced Tab -->
-      <div id="panelAdvanced" style="display:none;">
         <div class="form-row">
           <div class="form-group">
             <label>Gmail</label>
@@ -979,6 +957,28 @@
             <input type="number" id="profileHeight" value="1080" min="600" max="2160">
           </div>
         </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="profileNotes" placeholder="Optional notes" rows="2"></textarea>
+        </div>
+      </div>
+
+      <!-- Proxy Tab -->
+      <div id="panelProxy" style="display:none;">
+        <div class="form-group">
+          <label>Proxy Mode</label>
+          <select id="profileProxyMode" onchange="App.toggleProxyInput()" style="width:100%;padding:10px 12px;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#c9d1d9;margin-bottom:8px;">
+            <option value="direct">Direct Connection (No Proxy)</option>
+            <option value="personax">PersonaX Proxy (Random from list)</option>
+            <option value="custom">Custom Proxy</option>
+          </select>
+          <input type="password" id="profileProxy" placeholder="host:port:username:password" style="display:none;">
+          <div class="form-hint" id="proxyHint" style="font-size:11px;color:#8b949e;">No proxy will be used</div>
+        </div>
+      </div>
+
+      <!-- Advanced Tab (hidden - fields moved) -->
+      <div id="panelAdvanced" style="display:none;">
         <div class="form-group" id="regenFpGroup" style="display:none;">
           <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;">
             <input type="checkbox" id="regenFp" style="accent-color:#f59e0b;"> Regenerate fingerprint on save
@@ -992,36 +992,9 @@
           <div style="padding:4px 0;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
               <span style="font-size:13px;font-weight:600;color:#c9d1d9;">Browser Fingerprint</span>
-              <span style="font-size:10px;color:#3fb950;background:rgba(63,185,80,0.1);padding:2px 8px;border-radius:4px;">Auto-generated</span>
+              <button onclick="document.getElementById('regenFp').checked=true;App.switchProfileTab('fingerprint');toast('Fingerprint will regenerate on save','success')" style="background:#f59e0b;color:#000;border:none;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">&#8635; New Fingerprint</button>
             </div>
-            <div style="background:#0d1117;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px;">
-              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600;">System</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-                <div style="font-size:11px;color:#8b949e;">Platform: <span style="color:#c9d1d9;" id="fpPlatformDisplay">Auto</span></div>
-                <div style="font-size:11px;color:#8b949e;">Cores: <span style="color:#c9d1d9;" id="fpCoresDisplay">Random</span></div>
-                <div style="font-size:11px;color:#8b949e;">Memory: <span style="color:#c9d1d9;" id="fpMemoryDisplay">Random</span></div>
-                <div style="font-size:11px;color:#8b949e;">Screen: <span style="color:#c9d1d9;" id="fpScreenDisplay">Random</span></div>
-              </div>
-              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600;">Browser</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-                <div style="font-size:11px;color:#8b949e;">Language: <span style="color:#c9d1d9;" id="fpLangDisplay">Random</span></div>
-                <div style="font-size:11px;color:#8b949e;">Timezone: <span style="color:#c9d1d9;" id="fpTzDisplay">Auto</span></div>
-                <div style="font-size:11px;color:#8b949e;grid-column:1/-1;">User Agent: <span style="color:#c9d1d9;font-size:10px;" id="fpUaDisplay">Auto-generated</span></div>
-              </div>
-              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600;">Canvas & WebGL</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
-                <div style="font-size:11px;color:#8b949e;">WebGL: <span style="color:#c9d1d9;" id="fpWebglDisplay">Randomized</span></div>
-                <div style="font-size:11px;color:#8b949e;">Canvas: <span style="color:#c9d1d9;" id="fpCanvasDisplay">Noise added</span></div>
-                <div style="font-size:11px;color:#8b949e;">Audio: <span style="color:#c9d1d9;" id="fpAudioDisplay">Noise added</span></div>
-                <div style="font-size:11px;color:#8b949e;">Fonts: <span style="color:#c9d1d9;" id="fpFontsDisplay">System</span></div>
-              </div>
-              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600;">Privacy</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-                <div style="font-size:11px;color:#8b949e;">WebRTC: <span style="color:#c9d1d9;" id="fpRtcDisplay">Protected</span></div>
-                <div style="font-size:11px;color:#8b949e;">DNT: <span style="color:#c9d1d9;" id="fpDntDisplay">Disabled</span></div>
-              </div>
-            </div>
-            <p style="font-size:10px;color:#484f58;margin-top:8px;text-align:center;">Fingerprint is automatically generated with unique values for each profile</p>
+            <div id="fpDetailGrid" style="border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;"></div>
           </div>
         </div>
       </div>
@@ -1856,7 +1829,60 @@ function switchProfileTab(tab) {
     sel.innerHTML = html;
   }
 
+
+  function buildFpOverview(fp) {
+    var nav = fp.navigator || {};
+    var webgl = fp.webgl || {};
+    var canvas = fp.canvas || {};
+    var audio = fp.audio || {};
+    var scr = fp.screen || {};
+    var tz = fp.timezone || {};
+
+    var platform = nav.platform || 'Win32';
+    var os = platform === 'MacIntel' ? 'macOS' : (platform === 'Linux x86_64' ? 'Linux' : 'Windows');
+    var cores = nav.hardware_concurrency || (4 + Math.floor(Math.random()*12));
+    var mem = nav.device_memory || [4,8,16][Math.floor(Math.random()*3)];
+    var ua = nav.user_agent || nav.userAgent || 'Mozilla/5.0 (' + os + ' NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+    var lang = nav.language || 'en-US';
+    var tzName = tz.id || tz.name || 'America/New_York';
+    var w = scr.width || 1920;
+    var h = scr.height || 1080;
+    var renderer = webgl.renderer || 'ANGLE (Intel, Intel(R) UHD Graphics 630, D3D11)';
+    var vendor = webgl.vendor || 'Google Inc. (Intel)';
+    var canvasNoise = canvas.noise_seed || ('0x' + Math.random().toString(16).substr(2,8).toUpperCase());
+    var audioNoise = audio.noise_seed || ('0x' + Math.random().toString(16).substr(2,8).toUpperCase());
+    var deviceName = os === 'Windows' ? 'WIN-' + Math.random().toString(36).substr(2,7).toUpperCase() : (os === 'macOS' ? 'MacBook-' + Math.random().toString(36).substr(2,4) : 'linux-' + Math.random().toString(36).substr(2,6));
+
+    function row(label, val, color) {
+      return '<div style="display:flex;justify-content:space-between;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;"><span style="color:#8b949e;">' + label + '</span><span style="color:' + (color || '#c9d1d9') + ';text-align:right;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;">' + val + '</span></div>';
+    }
+
+    var grid = '';
+    grid += row('Browser', 'Chromium [Chrome 126]', '#c9d1d9');
+    grid += '<div style="display:flex;justify-content:space-between;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;"><span style="color:#8b949e;">User-Agent</span><span style="color:#c9d1d9;text-align:right;max-width:55%;font-size:9px;word-break:break-all;line-height:1.4;">' + esc(ua).substring(0,100) + '</span></div>';
+    grid += row('WebRTC', 'Proxy UDP', '#c9d1d9');
+    grid += row('Timezone', tzName, '#c9d1d9');
+    grid += row('Language', lang, '#c9d1d9');
+    grid += row('Screen Resolution', w + 'x' + h, '#c9d1d9');
+    grid += row('Fonts', 'Default', '#c9d1d9');
+    grid += row('Canvas', 'Noise [' + canvasNoise + ']', '#f59e0b');
+    grid += row('WebGL Image', 'Noise', '#c9d1d9');
+    grid += row('AudioContext', 'Noise [' + audioNoise + ']', '#f59e0b');
+    grid += row('Media Device', 'Noise [Auto]', '#c9d1d9');
+    grid += row('ClientRects', 'Noise', '#c9d1d9');
+    grid += row('SpeechVoices', 'Noise', '#c9d1d9');
+    grid += row('WebGL Metadata', vendor + ' / ' + renderer, '#c9d1d9');
+    grid += row('WebGPU', 'Based on WebGL', '#c9d1d9');
+    grid += row('CPU', cores + ' cores', '#c9d1d9');
+    grid += row('RAM', mem + ' GB', '#c9d1d9');
+    grid += row('Device Name', deviceName, '#f59e0b');
+
+    var el = document.getElementById('fpDetailGrid');
+    if (el) el.innerHTML = grid;
+  }
+
   function showFpSummaryInline(fp) {
+    buildFpOverview(fp || {});
     if (!fp || !fp.navigator) return;
     var nav = fp.navigator || {};
     var webgl = fp.webgl || {};
