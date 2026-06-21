@@ -1425,11 +1425,19 @@ var App = (function() {
     document.querySelectorAll('[onclick*="showTeamPanel"]').forEach(function(el) { el.style.display = ''; });
     document.querySelectorAll('[onclick*="showTrash"]').forEach(function(el) { el.style.display = ''; });
     // Reset workspace title back to owner style
-    var wsTitle = document.querySelector('.rp-workspace-title');
-    if (wsTitle && window.licenseInfo) {
+    var tierBadge2 = document.getElementById('rpTierBadge');
+    if (tierBadge2 && window.licenseInfo) {
       var tierName = (window.licenseInfo.tier_name || window.licenseInfo.tier || '').toUpperCase();
-      wsTitle.innerHTML = 'PERSONAX <span class="rp-license-badge" id="rpTierBadge" style="display:' + (tierName ? '' : 'none') + ';">' + tierName + '</span>';
+      tierBadge2.textContent = tierName;
+      tierBadge2.style.background = '';
+      tierBadge2.style.color = '';
+      tierBadge2.style.display = tierName ? '' : 'none';
     }
+    var wsSubtitle2 = document.querySelector('.rp-workspace-subtitle');
+    if (wsSubtitle2) wsSubtitle2.textContent = 'Local Workspace';
+    // Show license key display for owner
+    var keyDisplay2 = document.querySelector('.rp-license-key');
+    if (keyDisplay2) keyDisplay2.style.display = '';
   }
 
   function enforcePermissions() {
@@ -1481,9 +1489,12 @@ var App = (function() {
       tierBadge.style.color = '#60a5fa';
       tierBadge.style.display = '';
     }
-    var wsTitle = document.querySelector('.rp-workspace-title');
-    if (wsTitle) {
-      wsTitle.innerHTML = 'PERSONAX <span class="rp-license-badge" style="background:rgba(59,130,246,0.15);color:#60a5fa;">MEMBER</span>';
+    var tierBadgeM = document.getElementById('rpTierBadge');
+    if (tierBadgeM) {
+      tierBadgeM.textContent = 'MEMBER';
+      tierBadgeM.style.background = 'rgba(59,130,246,0.15)';
+      tierBadgeM.style.color = '#60a5fa';
+      tierBadgeM.style.display = '';
     }
     var wsSubtitle = document.querySelector('.rp-workspace-subtitle');
     if (wsSubtitle) {
@@ -2361,7 +2372,7 @@ var App = (function() {
     document.getElementById('toolbarTitle').textContent = 'Billing & Subscription';
     var info = window.licenseInfo || {};
     var tier = (info.tier_name || info.tier || 'Unknown').toUpperCase();
-    var key = info.license_key || '-';
+    var key = (window.isMemberLogin) ? '****-****-****-****' : (info.license_key || '-');
     var expires = info.expires_at ? info.expires_at.split('T')[0] : '-';
     var daysLeft = info.days_remaining || 0;
     var maxProfiles = info.max_profiles || 0;
@@ -3129,7 +3140,7 @@ function activate() {
     var profilesMax = info.max_profiles || 0;
     var profilePct = profilesMax > 0 ? Math.min((profilesUsed / profilesMax) * 100, 100) : 0;
 
-    document.getElementById('rpProfileUsage').textContent = profilesUsed.toLocaleString() + ' / ' + profilesMax.toLocaleString();
+    (function(){var _el=document.getElementById('rpProfileUsage');if(_el)_el.textContent=profilesUsed.toLocaleString() + ' / ' + profilesMax.toLocaleString();})();
     var profileBar = document.getElementById('rpProfileBar');
     profileBar.style.width = profilePct + '%';
     profileBar.className = 'rp-usage-bar-fill';
@@ -3145,7 +3156,7 @@ function activate() {
 
     var storagePct = storageMaxGB > 0 ? Math.min((storageUsedMB / (storageMaxGB * 1024)) * 100, 100) : 0;
     var storageDisplay = storageUsedMB >= 1024 ? (storageUsedMB / 1024).toFixed(1) + ' GB' : storageUsedMB + ' MB';
-    document.getElementById('rpStorageUsage').textContent = storageDisplay + ' / ' + storageMaxGB + ' GB';
+    (function(){var _el=document.getElementById('rpStorageUsage');if(_el)_el.textContent=storageDisplay + ' / ' + storageMaxGB + ' GB';})();
     var storageBar = document.getElementById('rpStorageBar');
     storageBar.style.width = storagePct + '%';
     storageBar.className = 'rp-usage-bar-fill';
