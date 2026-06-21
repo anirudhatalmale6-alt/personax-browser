@@ -709,6 +709,9 @@
       <div class="nav-item" onclick="if(window.personax&&window.personax.openExternal){window.personax.openExternal('https://personax.work/docs')}else{window.open('https://personax.work/docs','_blank')}">
         <span class="nav-item-icon">&#128214;</span> Documentation
       </div>
+      <div class="nav-item" onclick="App.showBilling()">
+        <span class="nav-item-icon">&#128179;</span> Billing
+      </div>
       <div class="nav-item" onclick="App.showChatSupport()">
         <span class="nav-item-icon">&#128172;</span> Chat Support
       </div>
@@ -2295,11 +2298,19 @@ var App = (function() {
     opts = opts || {};
     opts.headers = opts.headers || {};
     opts.headers['Content-Type'] = opts.headers['Content-Type'] || 'application/json';
+    // Use personax-api server directly via Go proxy
     var url = '/api' + path;
     return fetch(url, opts).then(function(r){
-      if(!r.ok) { console.error('Team API error:', r.status, url); return {}; }
+      if(!r.ok) {
+        console.error('Team API error:', r.status, url);
+        return r.json().catch(function(){ return {error: 'Request failed (status ' + r.status + ')'}; });
+      }
       return r.json();
-    }).catch(function(e){ console.error('Team API failed:', e, url); return {}; });
+    }).catch(function(e){
+      console.error('Team API failed:', e, url);
+      toast('API error: ' + (e.message || 'Connection failed'), 'error');
+      return {error: e.message || 'Connection failed'};
+    });
   }
   var allPerms = {
     profiles: ['open','create','delete','edit','move','export','import','edit_proxy','edit_fingerprint','edit_notes','edit_gmail','edit_custom_number'],
@@ -2309,6 +2320,68 @@ var App = (function() {
     team: ['view_members']
   };
 
+
+
+  function showBilling() {
+    state.currentPanel = 'billing';
+    var el = document.getElementById('content');
+    document.getElementById('toolbarTitle').textContent = 'Billing & Subscription';
+    var info = window.licenseInfo || {};
+    var tier = (info.tier_name || info.tier || 'Unknown').toUpperCase();
+    var key = info.license_key || '-';
+    var expires = info.expires_at ? info.expires_at.split('T')[0] : '-';
+    var daysLeft = info.days_remaining || 0;
+    var maxProfiles = info.max_profiles || 0;
+    var profilesUsed = (typeof App !== 'undefined' && App.getProfileCount) ? App.getProfileCount() : 0;
+
+    var h = '<div style="padding:24px;max-width:800px;margin:0 auto;">';
+
+    // Current Plan Card
+    h += '<div style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-bottom:16px;">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+    h += '<div><div style="font-size:12px;color:#8b949e;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;">Current Plan</div>';
+    h += '<div style="font-size:24px;font-weight:700;color:#f59e0b;">' + tier + '</div></div>';
+    h += '<span style="padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;background:rgba(63,185,80,0.12);color:#3fb950;">Active</span></div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">';
+    h += '<div style="background:#0d1117;border-radius:8px;padding:14px;"><div style="font-size:11px;color:#8b949e;margin-bottom:4px;">License Key</div><div style="font-size:12px;font-family:monospace;color:#c9d1d9;word-break:break-all;">' + key + '</div></div>';
+    h += '<div style="background:#0d1117;border-radius:8px;padding:14px;"><div style="font-size:11px;color:#8b949e;margin-bottom:4px;">Expires</div><div style="font-size:14px;font-weight:600;color:#c9d1d9;">' + expires + '</div><div style="font-size:11px;color:#8b949e;">' + daysLeft + ' days remaining</div></div>';
+    h += '<div style="background:#0d1117;border-radius:8px;padding:14px;"><div style="font-size:11px;color:#8b949e;margin-bottom:4px;">Profiles</div><div style="font-size:14px;font-weight:600;color:#c9d1d9;">' + profilesUsed + ' / ' + maxProfiles.toLocaleString() + '</div></div>';
+    h += '</div></div>';
+
+    // Usage History
+    h += '<div style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;margin-bottom:16px;">';
+    h += '<div style="font-size:14px;font-weight:600;color:#c9d1d9;margin-bottom:16px;">Usage Summary</div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">';
+    h += '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:#f59e0b;">' + profilesUsed + '</div><div style="font-size:11px;color:#8b949e;">Profiles</div></div>';
+    h += '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:#3b82f6;">20,000</div><div style="font-size:11px;color:#8b949e;">Proxies</div></div>';
+    h += '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:#8b5cf6;">0</div><div style="font-size:11px;color:#8b949e;">Extensions</div></div>';
+    h += '<div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:#3fb950;">0</div><div style="font-size:11px;color:#8b949e;">Members</div></div>';
+    h += '</div></div>';
+
+    // Upgrade section
+    h += '<div style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px;">';
+    h += '<div style="font-size:14px;font-weight:600;color:#c9d1d9;margin-bottom:12px;">Plans</div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">';
+
+    h += '<div style="background:#0d1117;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;text-align:center;">';
+    h += '<div style="font-size:14px;font-weight:600;color:#c9d1d9;">Starter</div><div style="font-size:24px;font-weight:700;color:#f59e0b;margin:8px 0;">$40<span style="font-size:12px;color:#8b949e;">/mo</span></div>';
+    h += '<div style="font-size:11px;color:#8b949e;">300 profiles</div></div>';
+
+    h += '<div style="background:#0d1117;border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:16px;text-align:center;">';
+    h += '<div style="font-size:14px;font-weight:600;color:#c9d1d9;">Pro</div><div style="font-size:24px;font-weight:700;color:#f59e0b;margin:8px 0;">$100<span style="font-size:12px;color:#8b949e;">/mo</span></div>';
+    h += '<div style="font-size:11px;color:#8b949e;">2,000 profiles</div></div>';
+
+    h += '<div style="background:#0d1117;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px;text-align:center;">';
+    h += '<div style="font-size:14px;font-weight:600;color:#c9d1d9;">Enterprise</div><div style="font-size:24px;font-weight:700;color:#f59e0b;margin:8px 0;">$500<span style="font-size:12px;color:#8b949e;">/mo</span></div>';
+    h += '<div style="font-size:11px;color:#8b949e;">20,000 profiles</div></div>';
+
+    h += '</div>';
+    h += '<p style="font-size:12px;color:#8b949e;margin-top:12px;text-align:center;">Contact support to upgrade or change your plan</p>';
+    h += '</div>';
+
+    h += '</div>';
+    el.innerHTML = h;
+  }
 
   function showChatSupport() {
     state.currentPanel = 'chat';
@@ -2480,7 +2553,7 @@ var App = (function() {
           toast('Member created! They can login with: ' + body.username, 'success');
           closeModal('dynamicModal');
           loadTeamData();
-        } else { toast(d.error || 'Error', 'error'); }
+        } else { toast(d.error || d.message || JSON.stringify(d) || 'Unknown error', 'error'); }
       });
     }, 'Create Member');
   }
@@ -2648,6 +2721,7 @@ var App = (function() {
     toggleSelectAll: toggleSelectAll,
     updateMoveBtn: updateMoveBtn,
     showMoveModal: showMoveModal,
+    showBilling: showBilling,
     showChatSupport: showChatSupport,
     sendAppChat: sendAppChat,
     filterProfiles: filterProfiles,
