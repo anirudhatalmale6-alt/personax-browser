@@ -903,10 +903,10 @@
 
     <!-- Tabs -->
     <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.06);padding:0 20px;" id="profileTabs">
-      <button onclick="switchProfileTab('general')" id="tabGeneral" style="padding:10px 16px;border:none;background:none;color:#f59e0b;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid #f59e0b;">General</button>
-      <button onclick="switchProfileTab('proxy')" id="tabProxy" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Proxy</button>
-      <button onclick="switchProfileTab('advanced')" id="tabAdvanced" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Advanced</button>
-      <button onclick="switchProfileTab('fingerprint')" id="tabFingerprint" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Fingerprint</button>
+      <button onclick="App.switchProfileTab('general')" id="tabGeneral" style="padding:10px 16px;border:none;background:none;color:#f59e0b;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid #f59e0b;">General</button>
+      <button onclick="App.switchProfileTab('proxy')" id="tabProxy" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Proxy</button>
+      <button onclick="App.switchProfileTab('advanced')" id="tabAdvanced" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Advanced</button>
+      <button onclick="App.switchProfileTab('fingerprint')" id="tabFingerprint" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Fingerprint</button>
     </div>
 
     <div class="modal-body" style="min-height:320px;">
@@ -2811,6 +2811,7 @@ function switchProfileTab(tab) {
     launchProfile: launchProfile,
     stopProfile: stopProfile,
     showCreateModal: showCreateModal,
+    switchProfileTab: switchProfileTab,
     showBulkModal: showBulkModal,
     toggleProxyInput: toggleProxyInput,
     bulkCreate: bulkCreate,
