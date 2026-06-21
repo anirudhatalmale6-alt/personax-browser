@@ -733,6 +733,7 @@
       <button class="btn btn-ghost btn-sm" onclick="App.importProfile()">Import</button>
       <button class="btn btn-ghost btn-sm" style="padding:6px 8px;" onclick="App.viewLog()" title="More options">&#8943;</button>
       <div class="toolbar-actions">
+        <button class="btn btn-ghost btn-sm" id="moveBtn" style="display:none;" onclick="App.showMoveModal()">&#128193; Move Selected</button>
         <div style="display:flex;align-items:center;gap:6px;margin-left:8px;">
           <select id="searchField" style="background:#1a1a35;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:7px 8px;color:#e2e8f0;font-size:12px;outline:none;cursor:pointer;" onchange="App.filterProfiles()">
             <option value="all">All Fields</option>
@@ -1204,6 +1205,44 @@ var App = (function() {
     else navAll.className = 'nav-item';
   }
 
+
+  var selectedProfiles = [];
+
+  function toggleSelectAll(checked) {
+    document.querySelectorAll('.profile-cb').forEach(function(cb) { cb.checked = checked; });
+    updateMoveBtn();
+  }
+
+  function updateMoveBtn() {
+    var cbs = document.querySelectorAll('.profile-cb:checked');
+    var btn = document.getElementById('moveBtn');
+    if (btn) btn.style.display = cbs.length > 0 ? '' : 'none';
+    selectedProfiles = Array.from(cbs).map(function(cb) { return cb.value; });
+  }
+
+  function showMoveModal() {
+    if (!selectedProfiles.length) { toast('Select profiles first', 'error'); return; }
+    var folderOpts = '<option value="">No Folder</option>';
+    state.folders.forEach(function(f) {
+      var fid = f.id || f.ID;
+      folderOpts += '<option value="' + fid + '">' + esc(f.name) + '</option>';
+    });
+    var html = '<h3 style="color:#ffffff;font-size:16px;margin-bottom:16px;">Move ' + selectedProfiles.length + ' profile(s)</h3>' +
+      '<div class="form-group"><label>Move to folder</label><select id="moveFolderSelect">' + folderOpts + '</select></div>';
+    openModalWithContent('moveModal', html, function() {
+      var targetFolder = document.getElementById('moveFolderSelect').value;
+      var promises = selectedProfiles.map(function(pid) {
+        return api('PUT', '/api/profiles/' + pid, {folder_id: targetFolder || null});
+      });
+      Promise.all(promises).then(function() {
+        toast(selectedProfiles.length + ' profiles moved', 'success');
+        closeModal('dynamicModal');
+        selectedProfiles = [];
+        return refresh();
+      });
+    }, 'Move');
+  }
+
   function selectFolder(folderId) {
     state.currentPanel = 'profiles';
     state.activeFolder = folderId;
@@ -1328,7 +1367,9 @@ var App = (function() {
       html += '<tr class="profile-row' + (isRunning ? ' running' : '') + '">';
 
       // Profile name + folder
-      html += '<td><div class="profile-name-cell">';
+      html += '' +
+      '<td style="padding:4px 4px 4px 12px;"><input type="checkbox" class="profile-cb" value="' + p.id + '" onchange="App.updateMoveBtn()" style="cursor:pointer;"></td>' +
+      '<td><div class="profile-name-cell">';
       html += '<span class="profile-status-dot ' + (isRunning ? 'active' : 'ready') + '"></span>';
       html += '<div class="profile-name-info">';
       html += '<span class="profile-name-text">' + esc(p.name) + '</span>';
@@ -2170,7 +2211,9 @@ var App = (function() {
         '<td style="padding:10px 14px;color:#6c5ce7;font-size:12px;">' + esc(m.email) + '</td>' +
         '<td style="padding:10px 14px;color:#9ca3af;font-size:12px;">' + esc(m.group_name || 'None') + '</td>' +
         '<td style="padding:10px 14px;">' + statusBadge + '</td>' +
-        '<td style="padding:10px 14px;text-align:right;"><button class="btn btn-ghost btn-xs" onclick="App.removeMember(&apos;' + m.id + '&apos;,&apos;' + esc(m.first_name) + '&apos;)">Remove</button></td></tr>';
+        '<td style="padding:10px 14px;text-align:right;">' +
+        (!m.activated ? '<button class="btn btn-primary btn-xs" style="margin-right:4px;" onclick="App.activateMember(&apos;' + m.id + '&apos;)">Accept</button>' : '') +
+        '<button class="btn btn-ghost btn-xs" onclick="App.removeMember(&apos;' + m.id + '&apos;,&apos;' + esc(m.first_name) + '&apos;)">Remove</button></td></tr>';
     });
     if (!teamMembers.length) h = '<tr><td colspan="5" style="padding:30px;text-align:center;color:#6b7280;">No members yet. Add your first team member.</td></tr>';
     document.getElementById('teamBody').innerHTML = h;
@@ -2199,6 +2242,13 @@ var App = (function() {
         } else { toast(d.error||'Error','error'); }
       });
     }, 'Add Member');
+  }
+
+
+  function activateMember(id) {
+    teamFetch('/members/' + id, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'active',activated:true})})
+    .then(function(d) { toast('Member activated','success'); loadTeamData(); })
+    .catch(function() { toast('Failed to activate','error'); });
   }
 
   function removeMember(id, name) {
@@ -2254,7 +2304,7 @@ var App = (function() {
     if (!name) return;
     var serverUrl = document.getElementById('serverUrl').value;
     teamFetch('/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
-    .then(function(r){return r.json()}).then(function(d){
+    .then(function(d){
       if(d.status==='ok'){toast('Group created','success');loadPermData();}else{toast(d.error||'Error','error');}
     });
   }
@@ -2313,6 +2363,9 @@ var App = (function() {
     connect: connect,
     refresh: refresh,
     selectFolder: selectFolder,
+    toggleSelectAll: toggleSelectAll,
+    updateMoveBtn: updateMoveBtn,
+    showMoveModal: showMoveModal,
     showChatSupport: showChatSupport,
     sendAppChat: sendAppChat,
     filterProfiles: filterProfiles,
@@ -2342,6 +2395,7 @@ var App = (function() {
     showPermPanel: showPermPanel,
     showAddMemberModal: showAddMemberModal,
     removeMember: removeMember,
+    activateMember: activateMember,
     addGroupPrompt: addGroupPrompt,
     deleteGroupAction: deleteGroupAction,
     editGroupPerms: editGroupPerms,
