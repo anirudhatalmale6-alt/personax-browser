@@ -103,6 +103,8 @@ async function startServer() {
   goProcess = spawn(serverExe, ['--server'], {
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
+    detached: false,
+    shell: false,
     env: {
       ...process.env,
       PERSONAX_SERVER_MODE: '1',
