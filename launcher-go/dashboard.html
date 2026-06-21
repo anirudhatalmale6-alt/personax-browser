@@ -895,85 +895,104 @@
 
 <!-- Create/Edit Profile Modal -->
 <div class="modal-overlay" id="profileModal">
-  <div class="modal">
+  <div class="modal" style="width:600px;max-width:95vw;">
     <div class="modal-header">
       <h3 id="modalTitle">New Profile</h3>
       <button class="modal-close" onclick="App.closeModal('profileModal')">&times;</button>
     </div>
-    <div class="modal-body">
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.06);padding:0 20px;" id="profileTabs">
+      <button onclick="switchProfileTab('general')" id="tabGeneral" style="padding:10px 16px;border:none;background:none;color:#f59e0b;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid #f59e0b;">General</button>
+      <button onclick="switchProfileTab('proxy')" id="tabProxy" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Proxy</button>
+      <button onclick="switchProfileTab('advanced')" id="tabAdvanced" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Advanced</button>
+      <button onclick="switchProfileTab('fingerprint')" id="tabFingerprint" style="padding:10px 16px;border:none;background:none;color:#8b949e;font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;">Fingerprint</button>
+    </div>
+
+    <div class="modal-body" style="min-height:320px;">
       <input type="hidden" id="editProfileId">
 
-      <div class="form-group">
-        <label>Profile Name</label>
-        <input type="text" id="profileName" placeholder="e.g. Profile 1">
-      </div>
-
-      <div class="form-row">
+      <!-- General Tab -->
+      <div id="panelGeneral">
         <div class="form-group">
-          <label>Folder</label>
-          <select id="profileFolder"></select>
+          <label>Profile Name</label>
+          <input type="text" id="profileName" placeholder="e.g. Profile 1">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Folder</label>
+            <select id="profileFolder"></select>
+          </div>
+          <div class="form-group">
+            <label>OS / Platform</label>
+            <select id="profileOS">
+              <option value="Win32">Windows</option>
+              <option value="MacIntel">macOS</option>
+              <option value="Linux x86_64">Linux</option>
+            </select>
+          </div>
         </div>
         <div class="form-group">
-          <label>OS / Platform</label>
-          <select id="profileOS">
-            <option value="Win32">Windows</option>
-            <option value="MacIntel">macOS</option>
-            <option value="Linux x86_64">Linux</option>
+          <label>Startup URL</label>
+          <input type="text" id="profileStartupUrl" placeholder="e.g. https://google.com">
+          <span class="hint" style="font-size:11px;color:#8b949e;">Opens as first tab. Leave empty for personax.work</span>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea id="profileNotes" placeholder="Optional notes about this profile" rows="3"></textarea>
+        </div>
+      </div>
+
+      <!-- Proxy Tab -->
+      <div id="panelProxy" style="display:none;">
+        <div class="form-group">
+          <label>Proxy Mode</label>
+          <select id="profileProxyMode" onchange="App.toggleProxyInput()" style="width:100%;padding:10px 12px;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#c9d1d9;margin-bottom:8px;">
+            <option value="direct">Direct Connection (No Proxy)</option>
+            <option value="personax">PersonaX Proxy (Random from list)</option>
+            <option value="custom">Custom Proxy</option>
           </select>
+          <input type="password" id="profileProxy" placeholder="host:port:username:password" style="display:none;">
+          <div class="form-hint" id="proxyHint" style="font-size:11px;color:#8b949e;">No proxy will be used</div>
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Proxy</label>
-        <select id="profileProxyMode" onchange="App.toggleProxyInput()" style="width:100%;padding:8px 12px;background:#1a1a28;border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0;margin-bottom:8px;">
-          <option value="direct">Direct Connection (No Proxy)</option>
-          <option value="personax">PersonaX Proxy (Random from list)</option>
-          <option value="custom">Custom Proxy</option>
-        </select>
-        <input type="password" id="profileProxy" placeholder="host:port:username:password" style="display:none;">
-        <div class="form-hint" id="proxyHint">No proxy will be used</div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Gmail</label>
-          <input type="text" id="profileGmail" placeholder="example@gmail.com">
+      <!-- Advanced Tab -->
+      <div id="panelAdvanced" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Gmail</label>
+            <input type="text" id="profileGmail" placeholder="example@gmail.com">
+          </div>
+          <div class="form-group">
+            <label>Custom Number</label>
+            <input type="text" id="profileCustomNumber" placeholder="e.g. 12345">
+          </div>
         </div>
-        <div class="form-group">
-          <label>Custom Number</label>
-          <input type="text" id="profileCustomNumber" placeholder="e.g. 12345">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Window Width</label>
+            <input type="number" id="profileWidth" value="1920" min="800" max="3840">
+          </div>
+          <div class="form-group">
+            <label>Window Height</label>
+            <input type="number" id="profileHeight" value="1080" min="600" max="2160">
+          </div>
         </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Window Width</label>
-          <input type="number" id="profileWidth" value="1920" min="800" max="3840">
-        </div>
-        <div class="form-group">
-          <label>Window Height</label>
-          <input type="number" id="profileHeight" value="1080" min="600" max="2160">
+        <div class="form-group" id="regenFpGroup" style="display:none;">
+          <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;">
+            <input type="checkbox" id="regenFp" style="accent-color:#f59e0b;"> Regenerate fingerprint on save
+          </label>
         </div>
       </div>
 
-      <div class="form-group">
-        <label>Notes</label>
-        <textarea id="profileNotes" placeholder="Optional notes about this profile"></textarea>
+      <!-- Fingerprint Tab -->
+      <div id="panelFingerprint" style="display:none;">
+        <div id="fpSummaryContainer">
+          <p style="color:#8b949e;font-size:13px;text-align:center;padding:40px 0;">Create a profile first to see fingerprint details</p>
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Startup URL</label>
-        <input type="text" id="profileStartupUrl" placeholder="e.g. https://personax.xyz/profileid">
-        <span class="hint" style="font-size:11px;color:#6b7280;">Opens as the first tab when profile launches. Leave empty for blank page.</span>
-      </div>
-
-      <div class="form-group" id="regenFpGroup" style="display:none;">
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;">
-          <input type="checkbox" id="regenFp" style="accent-color:#f59e0b;"> Regenerate fingerprint on save
-        </label>
-      </div>
-
-      <div id="fpSummaryContainer"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="App.closeModal('profileModal')">Cancel</button>
@@ -1739,9 +1758,24 @@ var App = (function() {
     document.getElementById('regenFpGroup').style.display = 'none';
     document.getElementById('fpSummaryContainer').innerHTML = '';
     populateFolderSelect(state.activeFolder);
+    switchProfileTab('general');
+    document.getElementById('tabFingerprint').style.display = 'none';
     openModal('profileModal');
   }
 
+
+function switchProfileTab(tab) {
+  ['general','proxy','advanced','fingerprint'].forEach(function(t) {
+    var panel = document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1));
+    var btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      btn.style.color = t === tab ? '#f59e0b' : '#8b949e';
+      btn.style.fontWeight = t === tab ? '600' : '500';
+      btn.style.borderBottom = t === tab ? '2px solid #f59e0b' : '2px solid transparent';
+    }
+  });
+}
   function showEditModal(id) {
     var p = state.profiles.find(function(x) { return x.id === id; });
     if (!p) return;
@@ -1771,8 +1805,10 @@ var App = (function() {
 
     document.getElementById('regenFpGroup').style.display = '';
     document.getElementById('regenFp').checked = false;
+    document.getElementById('tabFingerprint').style.display = '';
     populateFolderSelect(p.folder_id);
     showFpSummaryInline(fp);
+    switchProfileTab('general');
     openModal('profileModal');
   }
 
