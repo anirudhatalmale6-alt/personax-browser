@@ -103,9 +103,9 @@
 
   /* ===== Main toolbar ===== */
   .toolbar {
-    display: flex; align-items: center; gap: 12px; padding: 14px 24px;
+    display: flex; align-items: center; gap: 8px; padding: 14px 16px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    background: #0d0d20;
+    background: #0d0d20; flex-wrap: wrap; overflow: hidden;
   }
   .toolbar-title { font-size: 15px; font-weight: 600; color: #e2e8f0; flex-shrink: 0; letter-spacing: 0.01em; }
   .search-box { flex: 1; max-width: 300px; position: relative; }
@@ -117,7 +117,7 @@
   .search-box input:focus { border-color: rgba(124, 58, 237, 0.6); background: rgba(124, 58, 237, 0.05); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12); }
   .search-box input::placeholder { color: #6b7280; }
   .search-box::before { content: '\1F50D'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 12px; opacity: .35; }
-  .toolbar-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+  .toolbar-actions { margin-left: auto; display: flex; gap: 6px; flex-shrink: 1; flex-wrap: wrap; }
 
   /* ===== Buttons ===== */
   .btn {
@@ -1537,7 +1537,7 @@ var App = (function() {
     var folderId = document.getElementById('profileFolder').value;
     var body = {
       name: name,
-      folder_id: folderId ? parseInt(folderId) : null,
+      folder_id: folderId || null,
       proxy: getProxyValue(),
       gmail: document.getElementById('profileGmail').value.trim(),
       custom_number: document.getElementById('profileCustomNumber').value.trim(),
@@ -2024,7 +2024,7 @@ var App = (function() {
 
   // ─── Team Management ────────────────────────────────────────────────
   var TEAM_BASE = 'https://personax.work/api';
-  var TEAM_TOKEN = 'sgQppshNpTCAYJ5qIddj8ZvOHl6Vetgs';
+  var TEAM_TOKEN = 'ching_admin_2026!';
   var teamMembers = [];
   var teamGroups = [];
 
@@ -2185,7 +2185,7 @@ var App = (function() {
       if(!body.email||!body.first_name||!body.last_name){toast('All fields required','error');return;}
       var serverUrl = document.getElementById('serverUrl').value;
       teamFetch('/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-      .then(function(r){return r.json()}).then(function(d){
+      .then(function(d){
         if(d.status==='ok'){
           document.getElementById('tmInviteUrl').textContent='Invite URL: '+d.member.invite_url;
           document.getElementById('tmInviteUrl').style.display='block';
@@ -2214,7 +2214,7 @@ var App = (function() {
   }
 
   function loadPermData() {
-    teamFetch('/groups').then(function(r){return r.json()}).then(function(d) {
+    teamFetch('/groups').then(function(d) {
       teamGroups = d.groups || [];
       renderGroupCards();
     }).catch(function() {
