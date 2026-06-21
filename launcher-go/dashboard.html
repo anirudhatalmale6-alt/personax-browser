@@ -1049,7 +1049,7 @@
     <div id="memberTab" style="display:none;">
       <div class="license-subtitle">Log in with your member credentials</div>
       <div class="license-input-wrap" style="margin-bottom:8px;">
-        <input type="text" id="memberUsername" placeholder="Username" spellcheck="false" autocomplete="off">
+        <input type="text" id="memberUsername" placeholder="Username" autofocus spellcheck="false" autocomplete="off">
       </div>
       <div class="license-input-wrap">
         <input type="password" id="memberPassword" placeholder="Password" onkeypress="if(event.key==='Enter')License.memberLogin()">
@@ -2463,6 +2463,7 @@ var App = (function() {
     connect: connect,
     refresh: refresh,
     logout: logout,
+    getProfileCount: function() { return state.profiles ? state.profiles.length : 0; },
     selectFolder: selectFolder,
     toggleSelectAll: toggleSelectAll,
     updateMoveBtn: updateMoveBtn,
@@ -2665,6 +2666,8 @@ var License = (function() {
     document.getElementById('tabLicense').style.color = tab === 'license' ? '#f59e0b' : '#6b7280';
     document.getElementById('tabMember').style.background = tab === 'member' ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)';
     document.getElementById('tabMember').style.color = tab === 'member' ? '#3b82f6' : '#6b7280';
+    if (tab === 'member') setTimeout(function(){ var el = document.getElementById('memberUsername'); if(el) { el.blur(); el.focus(); } }, 100);
+    if (tab === 'license') setTimeout(function(){ var el = document.getElementById('licenseKeyInput'); if(el) { el.blur(); el.focus(); } }, 100);
   }
 
   function memberLogin() {
@@ -2798,7 +2801,7 @@ function activate() {
     subCard.style.display = '';
 
     // Profile usage
-    var profilesUsed = (state && state.profiles) ? state.profiles.length : (info.profiles_used || 0);
+    var profilesUsed = (typeof App !== 'undefined' && App.getProfileCount) ? App.getProfileCount() : (info.profiles_used || 0);
     var profilesMax = info.max_profiles || 0;
     var profilePct = profilesMax > 0 ? Math.min((profilesUsed / profilesMax) * 100, 100) : 0;
 

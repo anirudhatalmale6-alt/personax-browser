@@ -1696,6 +1696,7 @@ func handleOpenExtensionsFolder(w http.ResponseWriter, r *http.Request) {
 	switch runtime.GOOS {
 	case "windows":
 		cmd = exec.Command("explorer", dir)
+		setProcAttrs(cmd)
 	case "darwin":
 		cmd = exec.Command("open", dir)
 	default:
@@ -1881,7 +1882,12 @@ func handleLicensePlans(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+var cachedMachineID string
+
 func getMachineID() string {
+	if cachedMachineID != "" {
+		return cachedMachineID
+	}
 	if runtime.GOOS == "windows" {
 		wmicCmd := exec.Command("wmic", "csproduct", "get", "UUID")
 		setProcAttrs(wmicCmd)
@@ -1891,7 +1897,8 @@ func getMachineID() string {
 			for _, line := range lines {
 				line = strings.TrimSpace(line)
 				if line != "" && line != "UUID" {
-					return line
+					cachedMachineID = line
+				return cachedMachineID
 				}
 			}
 		}
@@ -2121,6 +2128,7 @@ func openBrowser(url string) {
 	switch runtime.GOOS {
 	case "windows":
 		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		setProcAttrs(cmd)
 	case "darwin":
 		cmd = exec.Command("open", url)
 	default:
