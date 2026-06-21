@@ -1708,9 +1708,9 @@ func handleOpenExtensionsFolder(w http.ResponseWriter, r *http.Request) {
 // License validation
 // ---------------------------------------------------------------------------
 
-const licenseAPIBase = "https://nickets.xyz/Ching"
+const licenseAPIBase = "https://personax.work"
 
-const chingAPIBase = "https://nickets.xyz/Ching"
+const chingAPIBase = "https://personax.work"
 
 func reportActivity(action, details string) {
 	key := ""
