@@ -2832,47 +2832,50 @@ var App = (function() {
   }
 
   function bulkCreate() {
-    // Check license profile limit before bulk creating
     if (typeof License !== 'undefined' && !License.canCreateProfile()) return;
     var count = parseInt(document.getElementById('bulkCount').value) || 1;
+    if (count < 1 || count > 100) { toast('Enter 1-100 profiles', 'error'); return; }
     var prefix = document.getElementById('bulkPrefix').value.trim() || 'Profile';
-    var ids = '';
-    for (var i = 1; i <= count; i++) { ids += prefix + ' ' + i + '\n'; }
-    if (!ids.trim()) { toast('Enter number of profiles', 'error'); return; }
     var btn = document.getElementById('bulkCreateBtn');
     btn.disabled = true;
-    btn.textContent = 'Creating...';
+    btn.textContent = 'Creating 0/' + count + '...';
     var folderId = document.getElementById('bulkFolder').value || null;
-    if (folderId) folderId = parseInt(folderId);
     var bulkMode = document.getElementById('bulkProxyMode').value;
-    var proxies = [];
     var singleProxy = '';
-    if (bulkMode === 'personax') {
-      proxies = personaxProxies;
-    } else if (bulkMode === 'custom') {
+    if (bulkMode === 'custom') {
       singleProxy = document.getElementById('bulkCustomProxy').value.trim();
     }
-    api('POST', '/api/profiles/bulk', {
-      ids: ids,
-      folder_id: folderId,
-      proxy: singleProxy,
-      random_fingerprint: document.getElementById('bulkRandomFp').checked,
-      random_proxy: bulkMode === 'personax',
-      proxy_list: proxies,
-      platform: document.getElementById('bulkOS').value
-    }).then(function(result) {
-      document.getElementById('bulkResult').style.display = 'block';
-      var msg = 'Created ' + result.total_created + ' profiles';
-      if (result.total_skipped > 0) msg += ', skipped ' + result.total_skipped + ' (already exist)';
-      document.getElementById('bulkResultText').textContent = msg;
-      toast(msg, 'success');
-      btn.textContent = 'Done!';
-      setTimeout(function() { closeModal('bulkModal'); refresh(); }, 1500);
-    }).catch(function(e) {
-      toast('Bulk create failed: ' + e.message, 'error');
-      btn.disabled = false;
-      btn.textContent = 'Create Profiles';
-    });
+    var platform = document.getElementById('bulkOS').value;
+    var created = 0;
+    var failed = 0;
+
+    function createNext(i) {
+      if (i > count) {
+        document.getElementById('bulkResult').style.display = 'block';
+        document.getElementById('bulkResultText').textContent = 'Created ' + created + ' profiles' + (failed > 0 ? ', ' + failed + ' failed' : '');
+        toast('Created ' + created + ' profiles', 'success');
+        btn.textContent = 'Done!';
+        setTimeout(function() { closeModal('bulkModal'); refresh(); }, 1500);
+        return;
+      }
+      btn.textContent = 'Creating ' + (i-1) + '/' + count + '...';
+      var proxy = '';
+      if (bulkMode === 'personax' && personaxProxies.length) {
+        proxy = personaxProxies[Math.floor(Math.random() * personaxProxies.length)];
+      } else if (bulkMode === 'custom') {
+        proxy = singleProxy;
+      }
+      var body = {
+        name: prefix + ' ' + i,
+        folder_id: folderId || null,
+        proxy: proxy,
+        platform: platform === 'Random' ? ['Win32','MacIntel','Linux x86_64'][Math.floor(Math.random()*3)] : (platform === 'macOS' ? 'MacIntel' : (platform === 'Linux' ? 'Linux x86_64' : 'Win32'))
+      };
+      api('POST', '/api/profiles', body)
+      .then(function() { created++; createNext(i + 1); })
+      .catch(function() { failed++; createNext(i + 1); });
+    }
+    createNext(1);
   }
 
 })();
