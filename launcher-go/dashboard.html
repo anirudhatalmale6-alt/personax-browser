@@ -1762,9 +1762,12 @@ var App = (function() {
     document.getElementById('profileStartupUrl').value = '';
     document.getElementById('profileOS').value = 'Win32';
     document.getElementById('regenFpGroup').style.display = 'none';
-    document.getElementById('fpSummaryContainer').innerHTML = '';
     populateFolderSelect(state.activeFolder);
+    buildFpOverview({});
     switchProfileTab('general');
+    window._regenFp = false;
+    var fpBtn = document.getElementById('newFpBtn');
+    if (fpBtn) { fpBtn.textContent = '\u21BB New Fingerprint'; fpBtn.style.background = '#f59e0b'; }
     openModal('profileModal');
   }
 
