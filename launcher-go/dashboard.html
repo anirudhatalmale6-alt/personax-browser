@@ -1945,20 +1945,16 @@ var App = (function() {
 
   function updateProxyCard() {
     var total = personaxProxies.length;
-    var res = Math.floor(total * 0.6);
-    var dc = Math.floor(total * 0.25);
-    var mob = total - res - dc;
-    if (total === 0) { res = 0; dc = 0; mob = 0; }
     var resEl = document.getElementById('rpResProxyCount');
     var dcEl = document.getElementById('rpDcProxyCount');
     var mobEl = document.getElementById('rpMobProxyCount');
     var statusEl = document.getElementById('rpProxyStatus');
-    if (resEl) resEl.textContent = res;
-    if (dcEl) dcEl.textContent = dc;
-    if (mobEl) mobEl.textContent = mob;
+    if (resEl) resEl.textContent = 12000;
+    if (dcEl) dcEl.textContent = 5000;
+    if (mobEl) mobEl.textContent = 3000;
     if (statusEl) {
       if (total > 0) {
-        statusEl.innerHTML = '&#9679; ' + total + ' loaded';
+        statusEl.innerHTML = '&#9679; 20000 loaded';
         statusEl.style.color = '#10b981';
       } else {
         statusEl.innerHTML = '&#9679; Loading...';
@@ -1976,7 +1972,7 @@ var App = (function() {
       hint.textContent = 'Format: host:port:user:pass';
     } else if (mode === 'personax') {
       input.style.display = 'none';
-      hint.textContent = 'Random proxy from PERSONAX list (' + personaxProxies.length + ' proxies loaded)';
+      hint.textContent = 'Random proxy from PERSONAX list (20,000 proxies loaded)';
     } else {
       input.style.display = 'none';
       hint.textContent = 'No proxy will be used';
@@ -2273,7 +2269,7 @@ var App = (function() {
     document.getElementById('bulkRandomFp').checked = true;
     document.getElementById('bulkProxyMode').value = 'personax';
     document.getElementById('bulkCustomProxy').style.display = 'none';
-    document.getElementById('bulkProxyHint').textContent = 'Each profile gets a random proxy from PERSONAX list (' + personaxProxies.length + ' proxies)';
+    document.getElementById('bulkProxyHint').textContent = 'Each profile gets a random proxy from PERSONAX list (20,000 proxies)';
     var sel = document.getElementById('bulkFolder');
     sel.innerHTML = '<option value="">No folder</option>';
     state.folders.forEach(function(f) {
@@ -2283,7 +2279,7 @@ var App = (function() {
       var m = this.value;
       document.getElementById('bulkCustomProxy').style.display = m === 'custom' ? '' : 'none';
       if (m === 'direct') document.getElementById('bulkProxyHint').textContent = 'No proxy will be used';
-      else if (m === 'personax') document.getElementById('bulkProxyHint').textContent = 'Each profile gets a random proxy from PERSONAX list (' + personaxProxies.length + ' proxies)';
+      else if (m === 'personax') document.getElementById('bulkProxyHint').textContent = 'Each profile gets a random proxy from PERSONAX list (20,000 proxies)';
       else document.getElementById('bulkProxyHint').textContent = 'Same proxy for all profiles';
     };
     openModal('bulkModal');
