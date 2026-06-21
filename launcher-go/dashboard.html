@@ -706,7 +706,7 @@
       </div>
 
       <div class="nav-section-title" style="margin-top:8px;">Support</div>
-      <div class="nav-item" onclick="window.open('https://personax.work/docs','_blank')">
+      <div class="nav-item" onclick="if(window.personax&&window.personax.openExternal){window.personax.openExternal('https://personax.work/docs')}else{window.open('https://personax.work/docs','_blank')}">
         <span class="nav-item-icon">&#128214;</span> Documentation
       </div>
       <div class="nav-item" onclick="App.showChatSupport()">
@@ -2803,25 +2803,41 @@ var License = (function() {
     if (!username || !password) { errEl.textContent = 'Enter username and password'; return; }
     errEl.textContent = 'Logging in...';
     var srvUrl = document.getElementById('serverUrl').value.trim();
-    fetch(srvUrl + '/api/member/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username: username, password: password})
-    }).then(function(r) { return r.json(); }).then(function(d) {
-      if (d.error) { errEl.textContent = d.error; return; }
-      if (d.member) {
-        // Store member info and their permissions
-        window.memberInfo = d.member;
-        window.isMemberLogin = true;
-        // Use the member's license key to connect
-        if (d.member.license_key) {
-          document.getElementById('licenseKeyInput').value = d.member.license_key;
-          activate();
-        } else {
-          errEl.textContent = 'No license key assigned. Contact your admin.';
+    if (window.personax && window.personax.memberLogin) {
+      // Use Electron IPC to bypass CORS
+      window.personax.memberLogin(srvUrl, username, password).then(function(d) {
+        if (d.error) { errEl.textContent = d.error; return; }
+        if (d.member) {
+          window.memberInfo = d.member;
+          window.isMemberLogin = true;
+          if (d.member.license_key) {
+            document.getElementById('licenseKeyInput').value = d.member.license_key;
+            activate();
+          } else {
+            errEl.textContent = 'No license key assigned. Contact your admin.';
+          }
         }
-      }
-    }).catch(function(e) { errEl.textContent = 'Connection failed'; });
+      });
+    } else {
+      // Fallback for non-Electron (shouldn't happen)
+      fetch(srvUrl + '/api/member/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: username, password: password})
+      }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.error) { errEl.textContent = d.error; return; }
+        if (d.member) {
+          window.memberInfo = d.member;
+          window.isMemberLogin = true;
+          if (d.member.license_key) {
+            document.getElementById('licenseKeyInput').value = d.member.license_key;
+            activate();
+          } else {
+            errEl.textContent = 'No license key assigned. Contact your admin.';
+          }
+        }
+      }).catch(function(e) { errEl.textContent = 'Connection failed'; });
+    }
   }
 
 function activate() {

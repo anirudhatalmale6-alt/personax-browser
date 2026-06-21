@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, Menu, ipcMain, dialog, shell } = require('electron')
 const { spawn, execFile, exec } = require('child_process')
 const { autoUpdater } = require('electron-updater')
 const path = require('path')
@@ -225,6 +225,38 @@ function setupIPC() {
     } catch (err) {
       return { ok: false, error: err.message }
     }
+  })
+
+  ipcMain.handle('member-login', async (event, serverUrl, username, password) => {
+    return new Promise((resolve) => {
+      const https = require('https')
+      const url = new URL(serverUrl + '/api/member/login')
+      const postData = JSON.stringify({ username, password })
+      const req = https.request({
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: url.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, (res) => {
+        let data = ''
+        res.on('data', (chunk) => data += chunk)
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)) } catch (e) { resolve({ error: 'Invalid response' }) }
+        })
+      })
+      req.on('error', (e) => resolve({ error: 'Connection failed: ' + e.message }))
+      req.write(postData)
+      req.end()
+    })
+  })
+
+  ipcMain.handle('open-external', async (event, url) => {
+    shell.openExternal(url)
+    return { ok: true }
   })
 
   ipcMain.handle('focus-window', async () => {
