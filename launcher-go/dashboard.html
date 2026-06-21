@@ -2203,7 +2203,7 @@ var App = (function() {
     document.getElementById('teamCount').textContent = teamMembers.length + ' members';
     var h = '';
     teamMembers.forEach(function(m) {
-      var statusBadge = m.activated ?
+      var statusBadge = (m.status === 'active') ?
         '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:rgba(0,196,140,0.1);color:#00c48c;border:1px solid rgba(0,196,140,0.25);">Active</span>' :
         '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:rgba(244,166,35,0.1);color:#f4a623;border:1px solid rgba(244,166,35,0.25);">Pending</span>';
       h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">' +
@@ -2212,7 +2212,7 @@ var App = (function() {
         '<td style="padding:10px 14px;color:#9ca3af;font-size:12px;">' + esc(m.group_name || 'None') + '</td>' +
         '<td style="padding:10px 14px;">' + statusBadge + '</td>' +
         '<td style="padding:10px 14px;text-align:right;">' +
-        (!m.activated ? '<button class="btn btn-primary btn-xs" style="margin-right:4px;" onclick="App.activateMember(&apos;' + m.id + '&apos;)">Accept</button>' : '') +
+        (m.status !== 'active' ? '<button class="btn btn-primary btn-xs" style="margin-right:4px;" onclick="App.activateMember(&apos;' + m.id + '&apos;)">Accept</button>' : '') +
         '<button class="btn btn-ghost btn-xs" onclick="App.removeMember(&apos;' + m.id + '&apos;,&apos;' + esc(m.first_name) + '&apos;)">Remove</button></td></tr>';
     });
     if (!teamMembers.length) h = '<tr><td colspan="5" style="padding:30px;text-align:center;color:#6b7280;">No members yet. Add your first team member.</td></tr>';

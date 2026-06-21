@@ -1427,6 +1427,7 @@ func stopProfile(profileID string) error {
 	// On Windows use taskkill /F /T /PID to kill the process tree
 	if runtime.GOOS == "windows" {
 		kill := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(proc.Pid))
+		setProcAttrs(kill)
 		kill.Stdout = os.Stdout
 		kill.Stderr = os.Stderr
 		if err := kill.Run(); err != nil {
@@ -1882,7 +1883,9 @@ func handleLicensePlans(w http.ResponseWriter, r *http.Request) {
 
 func getMachineID() string {
 	if runtime.GOOS == "windows" {
-		out, err := exec.Command("wmic", "csproduct", "get", "UUID").Output()
+		wmicCmd := exec.Command("wmic", "csproduct", "get", "UUID")
+		setProcAttrs(wmicCmd)
+		out, err := wmicCmd.Output()
 		if err == nil {
 			lines := strings.Split(string(out), "\n")
 			for _, line := range lines {

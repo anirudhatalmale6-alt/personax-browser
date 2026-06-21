@@ -229,7 +229,7 @@ function setupIPC() {
 
   ipcMain.handle('stop-chrome', async (event, pid) => {
     try {
-      exec(`taskkill /F /T /PID ${pid}`, () => {})
+      execFile('taskkill', ['/F', '/T', '/PID', String(pid)], { windowsHide: true }, () => {})
       chromeProcesses.delete(pid)
       return { ok: true }
     } catch (err) {
