@@ -1164,6 +1164,16 @@ var App = (function() {
     currentPanel: 'profiles'
   };
 
+  function savePanelState(panel) {
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/ui-settings', false);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.send(JSON.stringify({panel:panel}));
+      console.log('[PX] Panel saved:', panel, 'status:', xhr.status);
+    } catch(e) { console.log('[PX] Panel save error:', e); }
+  }
+
   function esc(s) {
     if (!s) return '';
     var d = document.createElement('div');
@@ -1233,11 +1243,19 @@ var App = (function() {
       })
     ]).then(function() {
       renderSidebar();
-      renderProfiles();
       loadExtensions();
       updateTrashCount();
       setTimeout(enforcePermissions, 100);
       if (typeof License !== 'undefined' && License.updateUI) License.updateUI();
+      if (window.__savedPanel && window.__savedPanel !== 'profiles') {
+        var rp = window.__savedPanel;
+        window.__savedPanel = null;
+        var restoreMap = {marketplace: showMarketplace, billing: showBilling, chat: showChatSupport};
+        if (restoreMap[rp]) { try { restoreMap[rp](); } catch(e) {} }
+        else { renderProfiles(); }
+      } else if (state.currentPanel === 'profiles') {
+        renderProfiles();
+      }
     }).catch(function(err) {
       toast('Refresh failed: ' + err.message, 'error');
     });
@@ -1370,7 +1388,7 @@ var App = (function() {
   var trashedProfiles = JSON.parse(localStorage.getItem('px_trash') || '[]');
 
   function showTrash() {
-    state.currentPanel = 'trash';
+    state.currentPanel = 'trash'; savePanelState('trash');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'Trash';
 
@@ -1562,7 +1580,7 @@ var App = (function() {
   }
 
   function selectFolder(folderId) {
-    state.currentPanel = 'profiles';
+    state.currentPanel = 'profiles'; savePanelState('profiles');
     state.activeFolder = folderId;
     console.log('Selected folder:', folderId);
     renderSidebar();
@@ -1765,7 +1783,7 @@ var App = (function() {
         })
         .catch(function(err) {
           if (err.message.indexOf('not downloaded') >= 0) {
-            toast('Chrome not ready yet. It will auto-download, please wait.', 'error');
+            toast('Chrome is downloading, please wait... Check the status bar at the top for progress.', 'error'); downloadChromium();
           } else {
             toast('Launch failed: ' + err.message, 'error');
           }
@@ -1785,7 +1803,7 @@ var App = (function() {
       })
       .catch(function(err) {
         if (err.message.indexOf('not downloaded') >= 0) {
-          toast('Chrome not ready yet. It will auto-download, please wait.', 'error');
+          toast('Chrome is downloading, please wait... Check the status bar at the top for progress.', 'error'); downloadChromium();
         } else {
           toast('Launch failed: ' + err.message, 'error');
         }
@@ -2247,10 +2265,11 @@ function switchProfileTab(tab) {
         chProg.style.display = 'none';
         chBtn.style.display = '';
       } else {
-        dotCh.className = 'dot dot-gray';
-        chText.textContent = 'Chrome: not installed';
+        dotCh.className = 'dot dot-yellow';
+        chText.textContent = 'Chrome: downloading...';
         chProg.style.display = 'none';
         chBtn.style.display = '';
+        downloadChromium();
       }
 
       if (s.server_connected && !state.connected) {
@@ -2285,6 +2304,40 @@ function switchProfileTab(tab) {
       updateTrashCount();
   setInterval(pollStatus, 2500);
   setTimeout(function() { connect(); }, 300);
+
+  function checkExtNotifications() {
+    var licKey = '';
+    if (window.licenseInfo && window.licenseInfo.license_key) licKey = window.licenseInfo.license_key;
+    if (!licKey) return;
+    api('GET', '/api/extensions/notifications?license_key=' + encodeURIComponent(licKey))
+    .then(function(d) {
+      var notifs = d.notifications || [];
+      notifs.forEach(function(n) {
+        var name = n.name || n.ext_id;
+        if (n.message === 'approved') {
+          showExtNotification(name + ' has been approved! Click here to go to Marketplace and install it.', 'success', function() { App.showMarketplace(); });
+          loadExtensions();
+          if (state.currentPanel === 'marketplace') showMarketplace();
+        }
+      });
+    }).catch(function() {});
+  }
+
+  function showExtNotification(msg, type, onClick) {
+    var bg = type === 'success' ? 'linear-gradient(135deg,#10b981,#059669)' : 'linear-gradient(135deg,#ef4444,#dc2626)';
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:99999;padding:16px 24px;border-radius:12px;color:#fff;font-size:13px;font-weight:600;max-width:350px;box-shadow:0 8px 24px rgba(0,0,0,0.4);background:' + bg + ';transition:opacity 0.5s;cursor:pointer;';
+    el.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:20px;">&#9989;</span><span>' + msg + '</span></div>';
+    if (onClick) el.addEventListener('click', function() { el.remove(); onClick(); });
+    document.body.appendChild(el);
+    setTimeout(function() { el.style.opacity = '0'; setTimeout(function() { el.remove(); }, 500); }, 5000);
+  }
+  window.showExtNotification = showExtNotification;
+
+  setInterval(checkExtNotifications, 15000);
+  setTimeout(checkExtNotifications, 5000);
+
+  // Panel restore moved to after IIFE closes
 
   // Populate activity feed
   (function() {
@@ -2369,7 +2422,7 @@ function switchProfileTab(tab) {
 
   // ─── Distribte Settings ──────────────────────────────────────────────
   function showDistribteSettings() {
-    state.currentPanel = 'distribte';
+    state.currentPanel = 'distribte'; savePanelState('distribte');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'Distribte Settings';
     el.innerHTML = '<div style="padding:20px;max-width:500px;margin:0 auto;">' +
@@ -2492,7 +2545,7 @@ function switchProfileTab(tab) {
 
   // ─── RPA Editor ─────────────────────────────────────────────────────
   function showRPAPanel() {
-    state.currentPanel = 'rpa';
+    state.currentPanel = 'rpa'; savePanelState('rpa');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'RPA Editor';
     el.style.overflow = 'hidden';
@@ -2540,7 +2593,7 @@ function switchProfileTab(tab) {
 
 
   function showMarketplace() {
-    state.currentPanel = 'marketplace';
+    state.currentPanel = 'marketplace'; savePanelState('marketplace');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'Extension Marketplace';
 
@@ -2558,10 +2611,18 @@ function switchProfileTab(tab) {
 
     var catalogP = api('GET', '/api/extensions/catalog');
     var purchasedP = api('GET', '/api/extensions/purchased?license_key=' + encodeURIComponent(licKey));
+    var localP = api('GET', '/api/extensions');
 
-    Promise.all([catalogP, purchasedP]).then(function(results) {
+    Promise.all([catalogP, purchasedP, localP]).then(function(results) {
       var extensions = results[0].extensions || [];
       var purchased = results[1].purchased || [];
+      var localExts = results[2].extensions || [];
+      var localNames = localExts.map(function(e) { return e.name; });
+      var localFolders = localExts.map(function(e) {
+        var p = (e.path || '').replace(/\\/g, '/');
+        var parts = p.split('/');
+        return parts[parts.length - 1] || parts[parts.length - 2] || '';
+      });
       var grid = document.getElementById('marketplaceGrid');
 
       marketplaceCatalog = extensions;
@@ -2582,12 +2643,13 @@ function switchProfileTab(tab) {
 
       var html = '';
       extensions.forEach(function(ext) {
-        var owned = purchased.indexOf(ext.ext_id) >= 0;
+        var hasPurchased = purchased.indexOf(ext.ext_id) >= 0;
+        var isLocal = localFolders.indexOf(ext.folder_name || ext.ext_id) >= 0 || localFolders.indexOf(ext.ext_id) >= 0;
         var isFree = ext.price === 0;
         var icon = iconMap[ext.icon_url] || '&#128640;';
         var color = colorMap[ext.icon_url] || '#f59e0b';
 
-        html += '<div style="background:linear-gradient(145deg,#12121f,#1a1a28);border:1px solid ' + (owned ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)') + ';border-radius:14px;padding:20px;transition:.2s;">';
+        html += '<div style="background:linear-gradient(145deg,#12121f,#1a1a28);border:1px solid ' + (isLocal ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.06)') + ';border-radius:14px;padding:20px;transition:.2s;">';
         html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">';
         html += '<div style="width:48px;height:48px;border-radius:12px;background:' + color + '22;display:flex;align-items:center;justify-content:center;font-size:24px;">' + icon + '</div>';
         html += '<div style="flex:1;"><div style="font-weight:700;font-size:15px;color:#fff;">' + esc(ext.name) + '</div>';
@@ -2600,14 +2662,23 @@ function switchProfileTab(tab) {
         html += '</div>';
         html += '<p style="font-size:12px;color:#9ca3af;line-height:1.5;margin-bottom:14px;">' + esc(ext.description) + '</p>';
 
-        if (owned) {
-          html += '<div style="display:flex;align-items:center;gap:8px;"><span style="background:rgba(16,185,129,0.1);color:#10b981;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;">&#10003; Installed</span>';
-          html += '<button onclick="App.uninstallExtension(\'' + ext.ext_id + '\')" style="padding:8px 14px;background:none;border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;font-size:11px;cursor:pointer;">Uninstall</button></div>';
-        } else if (isFree) {
-          html += '<button onclick="App.installExtension(\'' + ext.ext_id + '\')" style="padding:8px 20px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;transition:.2s;">Install Free</button>';
+        if (ext.full_description) {
+          html += '<div id="extDetail-' + ext.ext_id + '" style="display:none;background:#0d0d1a;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px;margin-bottom:14px;font-size:12px;color:#9ca3af;line-height:1.7;white-space:pre-line;">' + esc(ext.full_description) + '</div>';
+        }
+
+        html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+        if (isLocal) {
+          html += '<span style="background:rgba(16,185,129,0.1);color:#10b981;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;">&#10003; Installed</span>';
+          html += '<button onclick="App.uninstallExtension(\'' + ext.ext_id + '\')" style="padding:8px 14px;background:none;border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:8px;font-size:11px;cursor:pointer;">Uninstall</button>';
+        } else if (isFree || hasPurchased) {
+          html += '<button onclick="App.installExtension(\'' + ext.ext_id + '\')" style="padding:8px 20px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;transition:.2s;">Install</button>';
         } else {
           html += '<button onclick="App.buyExtension(\'' + ext.ext_id + '\',' + ext.price + ')" style="padding:8px 20px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;transition:.2s;">Buy $' + ext.price + '</button>';
         }
+        if (ext.full_description) {
+          html += '<button onclick="toggleExtDetails(\'' + ext.ext_id + '\',this)" style="padding:8px 14px;background:none;border:1px solid rgba(255,255,255,0.1);color:#6b7280;border-radius:8px;font-size:11px;cursor:pointer;transition:.2s;">How it works</button>';
+        }
+        html += '</div>';
         html += '</div>';
       });
 
@@ -2634,13 +2705,15 @@ function switchProfileTab(tab) {
       return api('POST', '/api/marketplace/install', {ext_id: extId, download_url: ext.download_url, folder_name: ext.folder_name});
     }).then(function(d) {
       if (d && d.error) { toast(d.error, 'error'); return; }
-      toast(ext.name + ' installed! It will load when you launch a profile.', 'success');
+      toast(ext.name + ' installed!', 'success');
+      loadExtensions();
       showMarketplace();
     });
   }
 
+  var buyState = {extId:'', ext:null, selectedMethod:'', proofUrl:'', conversions:{}, payMethods:[]};
+
   function buyExtension(extId, price) {
-    if (!confirm('Buy this extension for $' + price + '? Contact support to complete payment.')) return;
     var licKey = '';
     if (window.licenseInfo && window.licenseInfo.license_key) licKey = window.licenseInfo.license_key;
     if (!licKey) { toast('No license key found', 'error'); return; }
@@ -2648,17 +2721,192 @@ function switchProfileTab(tab) {
     var ext = marketplaceCatalog.find(function(e) { return e.ext_id === extId; });
     if (!ext) { toast('Extension not found', 'error'); return; }
 
-    toast('Processing purchase...', 'success');
+    var methods = (ext.payment_methods || '').split(',').filter(function(m){return m;});
+    if (!methods.length) { toast('No payment methods configured for this extension', 'error'); return; }
 
-    api('POST', '/api/extensions/buy', {ext_id: extId, license_key: licKey}).then(function(d) {
-      if (d.error) { toast(d.error, 'error'); return; }
-      return api('POST', '/api/marketplace/install', {ext_id: extId, download_url: ext.download_url, folder_name: ext.folder_name});
-    }).then(function(d) {
-      if (d && d.error) { toast(d.error, 'error'); return; }
-      toast(ext.name + ' purchased and installed!', 'success');
-      showMarketplace();
+    buyState = {extId:extId, ext:ext, selectedMethod:'', proofUrl:'', conversions:{}, payMethods:[]};
+
+    var html = '<div style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;" id="buyExtModal">';
+    html += '<div style="background:linear-gradient(145deg,#12121f,#1a1a28);border:1px solid rgba(245,158,11,0.2);border-radius:16px;padding:28px;width:440px;max-height:85vh;overflow-y:auto;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+    html += '<h3 style="color:#fff;font-size:16px;font-weight:700;">Buy ' + esc(ext.name) + '</h3>';
+    html += '<button onclick="closeBuyModal()" style="background:none;border:none;color:#6b7280;font-size:20px;cursor:pointer;">&times;</button></div>';
+    html += '<p style="color:#f59e0b;font-size:22px;font-weight:700;text-align:center;margin-bottom:4px;">$' + price + ' USD</p>';
+    html += '<p style="color:#6b7280;font-size:12px;text-align:center;margin-bottom:16px;">Select a payment method</p>';
+    html += '<div id="buyMethodList" style="margin-bottom:16px;"><div style="text-align:center;padding:20px;color:#6b7280;">Loading payment methods...</div></div>';
+    html += '<div id="buyMethodDetails" style="display:none;margin-bottom:16px;"></div>';
+    html += '<div id="buyProofSection" style="display:none;margin-bottom:16px;">';
+    html += '<label style="display:block;color:#9ca3af;font-size:12px;margin-bottom:8px;">Upload Payment Proof</label>';
+    html += '<div style="display:flex;align-items:center;gap:10px;">';
+    html += '<label style="padding:8px 16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:#f59e0b;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;"><input type="file" accept="image/*" style="display:none;" onchange="handleExtProofUpload(this.files[0])">Choose File</label>';
+    html += '<span id="buyProofName" style="color:#6b7280;font-size:12px;">No file selected</span></div>';
+    html += '<img id="buyProofPreview" style="display:none;max-width:100%;max-height:150px;border-radius:8px;margin-top:10px;border:1px solid rgba(255,255,255,0.1);">';
+    html += '</div>';
+    html += '<div id="buySuccessMsg" style="display:none;text-align:center;padding:20px;">';
+    html += '<div style="font-size:40px;margin-bottom:10px;">&#9989;</div>';
+    html += '<p style="color:#10b981;font-size:15px;font-weight:700;">Payment Submitted!</p>';
+    html += '<p style="color:#6b7280;font-size:12px;margin-top:6px;">Your payment is being reviewed. The extension will be available once approved.</p>';
+    html += '</div>';
+    html += '<div id="buyActions" style="display:flex;gap:10px;">';
+    html += '<button id="buySubmitBtn" onclick="submitExtPayment()" disabled style="flex:1;padding:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;opacity:0.5;">Submit Payment</button>';
+    html += '<button onclick="closeBuyModal()" style="padding:10px 20px;background:none;border:1px solid rgba(255,255,255,0.1);color:#6b7280;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>';
+    html += '</div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    var labels = {gcash:'GCash',btc:'Bitcoin',bnb:'BNB Chain',polygon:'Polygon',usdc_bnb:'USDC (BNB)',usdt_bnb:'USDT (BNB)'};
+    var serverUrl = (window.licenseInfo && window.licenseInfo.server_url) || state.serverUrl || 'https://personax.work';
+
+    Promise.all([
+      api('GET', '/api/extensions/crypto-prices?usd=' + price),
+      api('GET', '/api/extensions/payment-methods')
+    ]).then(function(results) {
+      buyState.conversions = results[0].conversions || {};
+      buyState.payMethods = results[1].methods || [];
+      var listEl = document.getElementById('buyMethodList');
+      var mhtml = '';
+      methods.forEach(function(m) {
+        var c = buyState.conversions[m];
+        var label = labels[m] || m.toUpperCase();
+        var amt = c ? c.amount + ' ' + c.symbol : '';
+        mhtml += '<div id="buyOpt-' + m + '" onclick="selectBuyMethod(\'' + m + '\')" style="background:#0d0d1a;border:2px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-bottom:8px;cursor:pointer;transition:.2s;">';
+        mhtml += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+        mhtml += '<span style="color:#fff;font-weight:600;font-size:13px;">' + label + '</span>';
+        mhtml += '<span style="color:#f59e0b;font-family:monospace;font-weight:700;font-size:13px;">' + amt + '</span>';
+        mhtml += '</div></div>';
+      });
+      listEl.innerHTML = mhtml;
+    }).catch(function() {
+      document.getElementById('buyMethodList').innerHTML = '<p style="color:#ef4444;text-align:center;padding:16px;">Failed to load payment methods</p>';
     });
   }
+
+  function selectBuyMethod(method) {
+    buyState.selectedMethod = method;
+    document.querySelectorAll('[id^="buyOpt-"]').forEach(function(el) {
+      el.style.borderColor = 'rgba(255,255,255,0.06)';
+    });
+    var sel = document.getElementById('buyOpt-' + method);
+    if (sel) sel.style.borderColor = '#f59e0b';
+
+    var pm = buyState.payMethods.find(function(x) { return x.method === method; });
+    var c = buyState.conversions[method];
+    var detailsEl = document.getElementById('buyMethodDetails');
+    var serverUrl = (window.licenseInfo && window.licenseInfo.server_url) || state.serverUrl || 'https://personax.work';
+
+    var html = '<div style="background:#0d0d1a;border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:16px;">';
+    if (c) {
+      html += '<div style="text-align:center;margin-bottom:12px;"><span style="color:#f59e0b;font-size:18px;font-weight:700;">' + c.amount + ' ' + c.symbol + '</span></div>';
+    }
+    if (pm && pm.address) {
+      html += '<label style="display:block;color:#6b7280;font-size:11px;margin-bottom:4px;">' + (method === 'gcash' ? 'GCash Details' : 'Wallet Address') + '</label>';
+      html += '<div onclick="copyBuyAddress(this)" title="Click to copy" style="background:#12121f;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px;color:#f59e0b;font-family:monospace;font-size:12px;word-break:break-all;cursor:pointer;transition:.2s;">' + esc(pm.address) + '</div>';
+    }
+    if (pm && pm.qr_image) {
+      html += '<div style="text-align:center;margin-top:12px;"><img src="' + serverUrl + pm.qr_image + '" style="max-width:180px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);"></div>';
+    }
+    if (pm && pm.instructions) {
+      html += '<p style="color:#6b7280;font-size:11px;margin-top:10px;line-height:1.5;">' + esc(pm.instructions) + '</p>';
+    }
+    html += '</div>';
+    detailsEl.innerHTML = html;
+    detailsEl.style.display = 'block';
+    document.getElementById('buyProofSection').style.display = 'block';
+    updateBuySubmit();
+  }
+
+  function copyBuyAddress(el) {
+    navigator.clipboard.writeText(el.textContent).then(function() {
+      var orig = el.textContent;
+      el.textContent = 'Copied!';
+      el.style.color = '#10b981';
+      setTimeout(function() { el.textContent = orig; el.style.color = '#f59e0b'; }, 1500);
+    });
+  }
+
+  function handleExtProofUpload(file) {
+    if (!file) return;
+    document.getElementById('buyProofName').textContent = file.name;
+    var fd = new FormData();
+    fd.append('file', file);
+    fetch('/api/extensions/upload-proof', {method:'POST', body:fd})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.url) {
+        buyState.proofUrl = d.url;
+        var prev = document.getElementById('buyProofPreview');
+        prev.src = 'https://personax.work' + d.url;
+        prev.style.display = 'block';
+        updateBuySubmit();
+      } else {
+        toast('Upload error: ' + (d.error || 'unknown'), 'error');
+      }
+    }).catch(function(e) { toast('Failed to upload proof: ' + e.message, 'error'); });
+  }
+
+  function updateBuySubmit() {
+    var btn = document.getElementById('buySubmitBtn');
+    if (!btn) return;
+    var ready = buyState.selectedMethod && buyState.proofUrl;
+    btn.disabled = !ready;
+    btn.style.opacity = ready ? '1' : '0.5';
+  }
+
+  function submitExtPayment() {
+    var btn = document.getElementById('buySubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    var licKey = '';
+    if (window.licenseInfo && window.licenseInfo.license_key) licKey = window.licenseInfo.license_key;
+
+    api('POST', '/api/extensions/payment-order', {
+      name: licKey,
+      email: '',
+      tier: 'extension:' + buyState.extId,
+      payment_method: buyState.selectedMethod,
+      amount: buyState.ext ? buyState.ext.price : 0,
+      proof_image: buyState.proofUrl
+    }).then(function(d) {
+      document.getElementById('buyMethodList').style.display = 'none';
+      document.getElementById('buyMethodDetails').style.display = 'none';
+      document.getElementById('buyProofSection').style.display = 'none';
+      document.getElementById('buyActions').style.display = 'none';
+      document.getElementById('buySuccessMsg').style.display = 'block';
+    }).catch(function() {
+      btn.disabled = false;
+      btn.textContent = 'Submit Payment';
+      toast('Error submitting payment', 'error');
+    });
+  }
+
+  function closeBuyModal() {
+    var modal = document.getElementById('buyExtModal');
+    if (modal) modal.remove();
+  }
+
+  function toggleExtDetails(extId, btn) {
+    var el = document.getElementById('extDetail-' + extId);
+    if (!el) return;
+    if (el.style.display === 'none') {
+      el.style.display = 'block';
+      btn.textContent = 'Hide details';
+      btn.style.color = '#f59e0b';
+      btn.style.borderColor = 'rgba(245,158,11,0.3)';
+    } else {
+      el.style.display = 'none';
+      btn.textContent = 'How it works';
+      btn.style.color = '#6b7280';
+      btn.style.borderColor = 'rgba(255,255,255,0.1)';
+    }
+  }
+  window.toggleExtDetails = toggleExtDetails;
+
+  window.selectBuyMethod = selectBuyMethod;
+  window.copyBuyAddress = copyBuyAddress;
+  window.handleExtProofUpload = handleExtProofUpload;
+  window.submitExtPayment = submitExtPayment;
+  window.updateBuySubmit = updateBuySubmit;
+  window.closeBuyModal = closeBuyModal;
 
   function uninstallExtension(extId) {
     if (!confirm('Uninstall this extension?')) return;
@@ -2667,12 +2915,13 @@ function switchProfileTab(tab) {
 
     api('POST', '/api/marketplace/uninstall', {ext_id: extId, folder_name: folderName}).then(function(d) {
       toast('Extension uninstalled', 'success');
+      loadExtensions();
       showMarketplace();
     });
   }
 
   function showBilling() {
-    state.currentPanel = 'billing';
+    state.currentPanel = 'billing'; savePanelState('billing');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'Billing & Subscription';
     var info = window.licenseInfo || {};
@@ -2733,7 +2982,7 @@ function switchProfileTab(tab) {
   }
 
   function showChatSupport() {
-    state.currentPanel = 'chat';
+    state.currentPanel = 'chat'; savePanelState('chat');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'Chat Support';
     var chatSessionId = localStorage.getItem('px_app_chat') || '';
@@ -2812,7 +3061,7 @@ function switchProfileTab(tab) {
   }
 
   function showTeamPanel() {
-    state.currentPanel = 'team';
+    state.currentPanel = 'team'; savePanelState('team');
     var el = document.getElementById('content');
     document.getElementById('toolbarTitle').textContent = 'Members';
     el.innerHTML = '<div style="padding:20px;max-width:900px;margin:0 auto;">' +
@@ -3189,6 +3438,8 @@ function switchProfileTab(tab) {
   }
 
 })();
+
+// Panel restore happens inside refresh() after connect succeeds
 </script>
 <script>
   // Splash screen auto-hide
