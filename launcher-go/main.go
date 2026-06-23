@@ -2084,14 +2084,39 @@ func sendHeartbeat() {
 		"license_key":     key,
 		"machine_id":      machineID,
 		"profiles_active": activeCount,
-		"app_version":     "1.3.0",
+		"app_version":     "1.4.0",
 	})
 	resp, err := http.Post(chingAPIBase+"/api/heartbeat", "application/json", bytes.NewReader(payload))
 	if err != nil {
 		log.Printf("Heartbeat failed: %v", err)
 		return
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	var result struct {
+		OK              bool   `json:"ok"`
+		ForceDisconnect bool   `json:"force_disconnect"`
+		Reason          string `json:"reason"`
+	}
+	if json.Unmarshal(body, &result) == nil && result.ForceDisconnect {
+		log.Printf("Force disconnect received: %s", result.Reason)
+		mu.Lock()
+		for pid, proc := range processes {
+			log.Printf("Force-stopping profile %s", pid)
+			if runtime.GOOS == "windows" {
+				kill := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(proc.Pid))
+				setProcAttrs(kill)
+				kill.Run()
+			} else {
+				proc.Kill()
+			}
+		}
+		processes = make(map[string]*os.Process)
+		mu.Unlock()
+		os.Remove(licenseFilePath())
+		log.Printf("License revoked, all profiles stopped, license file removed")
+	}
 }
 
 func startHeartbeatLoop() {
