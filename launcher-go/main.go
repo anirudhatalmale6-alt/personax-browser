@@ -295,68 +295,77 @@ func downloadChromium() {
 			mu.Unlock()
 		}
 
-		dlClient := &http.Client{Timeout: 10 * time.Minute}
-		metaClient := &http.Client{Timeout: 30 * time.Second}
+		dlClient := &http.Client{Timeout: 15 * time.Minute}
 
-		var platform, zipName string
+		var zipName string
 		switch runtime.GOOS {
 		case "darwin":
-			if runtime.GOARCH == "arm64" {
-				platform = "Mac_Arm"
-			} else {
-				platform = "Mac"
-			}
 			zipName = "chrome-mac.zip"
 		default:
-			platform = "Win_x64"
 			zipName = "chrome-win.zip"
 		}
 
-		log.Printf("Fetching latest Chromium revision for %s...", platform)
-		resp, err := metaClient.Get("https://storage.googleapis.com/chromium-browser-snapshots/" + platform + "/LAST_CHANGE")
-		if err != nil {
-			setErr(fmt.Sprintf("Failed to fetch revision: %v", err))
-			return
-		}
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			setErr(fmt.Sprintf("Failed to read revision: %v", err))
-			return
-		}
-		revision := strings.TrimSpace(string(body))
-		log.Printf("Latest Chromium revision: %s", revision)
-
-		setProgress(5)
-
-		zipURL := fmt.Sprintf("https://storage.googleapis.com/chromium-browser-snapshots/%s/%s/%s", platform, revision, zipName)
 		destDir := filepath.Join(dataDir, "chromium")
 		os.MkdirAll(destDir, 0755)
 		zipPath := filepath.Join(destDir, zipName)
 
-		maxRetries := 3
-		var lastErr error
-		for attempt := 1; attempt <= maxRetries; attempt++ {
-			if attempt > 1 {
-				log.Printf("Retry %d/%d for Chromium download...", attempt, maxRetries)
-				setProgress(5)
-				mu.Lock()
-				downloadError = ""
-				mu.Unlock()
-				time.Sleep(3 * time.Second)
-			}
+		// Try PersonaX server first (fastest, most reliable)
+		primaryURL := "https://personax.work/downloads/" + zipName
+		log.Printf("Downloading Chromium from PersonaX server: %s", primaryURL)
+		setProgress(2)
 
-			lastErr = downloadChromiumZip(dlClient, zipURL, zipPath, setProgress)
-			if lastErr == nil {
-				break
-			}
-			log.Printf("Download attempt %d failed: %v", attempt, lastErr)
-		}
-
-		if lastErr != nil {
+		err := downloadChromiumZip(dlClient, primaryURL, zipPath, setProgress)
+		if err != nil {
+			log.Printf("PersonaX server download failed: %v, trying Google CDN...", err)
 			os.Remove(zipPath)
-			setErr(fmt.Sprintf("Download failed after %d attempts: %v", maxRetries, lastErr))
-			return
+			setProgress(2)
+
+			// Fallback to Google CDN
+			metaClient := &http.Client{Timeout: 30 * time.Second}
+			var platform string
+			switch runtime.GOOS {
+			case "darwin":
+				if runtime.GOARCH == "arm64" {
+					platform = "Mac_Arm"
+				} else {
+					platform = "Mac"
+				}
+			default:
+				platform = "Win_x64"
+			}
+
+			resp, err2 := metaClient.Get("https://storage.googleapis.com/chromium-browser-snapshots/" + platform + "/LAST_CHANGE")
+			if err2 != nil {
+				setErr(fmt.Sprintf("Both download sources failed. Server: %v, Google: %v", err, err2))
+				return
+			}
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			revision := strings.TrimSpace(string(body))
+
+			fallbackURL := fmt.Sprintf("https://storage.googleapis.com/chromium-browser-snapshots/%s/%s/%s", platform, revision, zipName)
+			log.Printf("Trying Google CDN: %s", fallbackURL)
+
+			maxRetries := 2
+			var lastErr error
+			for attempt := 1; attempt <= maxRetries; attempt++ {
+				if attempt > 1 {
+					log.Printf("Google CDN retry %d/%d...", attempt, maxRetries)
+					setProgress(5)
+					time.Sleep(3 * time.Second)
+				}
+				lastErr = downloadChromiumZip(dlClient, fallbackURL, zipPath, setProgress)
+				if lastErr == nil {
+					break
+				}
+				log.Printf("Google CDN attempt %d failed: %v", attempt, lastErr)
+			}
+
+			if lastErr != nil {
+				os.Remove(zipPath)
+				setErr(fmt.Sprintf("Download failed from all sources: %v", lastErr))
+				return
+			}
 		}
 
 		setProgress(87)
