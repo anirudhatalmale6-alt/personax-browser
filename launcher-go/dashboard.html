@@ -2318,6 +2318,7 @@ function switchProfileTab(tab) {
   loadExtensions();
       updateTrashCount();
   setInterval(pollStatus, 2500);
+  setInterval(function() { if (state.connected) refresh(); }, 8000);
   setTimeout(function() { connect(); }, 300);
 
   function checkExtNotifications() {
