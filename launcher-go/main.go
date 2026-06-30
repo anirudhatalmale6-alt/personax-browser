@@ -1640,10 +1640,18 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 	profileDir := filepath.Join(dataDir, "profiles", profile.ID)
 	os.MkdirAll(profileDir, 0755)
 
-	downloadProfileSync(profile.ID, profileDir)
+	// Only download sync data if profile has no local data yet (first time on this machine)
+	// This prevents overwriting local history/cookies with older server data
+	defaultDir := filepath.Join(profileDir, "Default")
+	historyPath := filepath.Join(defaultDir, "History")
+	if _, err := os.Stat(historyPath); os.IsNotExist(err) {
+		log.Printf("No local data for profile %s, downloading from server", profile.ID)
+		downloadProfileSync(profile.ID, profileDir)
+	} else {
+		log.Printf("Local data exists for profile %s, using local (sync upload on close)", profile.ID)
+	}
 
-	// Disable Chrome cookie encryption by writing Local State config
-	// This makes cookies portable across machines (no DPAPI binding)
+	// Disable newer Chrome encryption layers (preserve existing DPAPI key)
 	disableCookieEncryption(profileDir)
 
 	fpDir, err := ensureFPExtension()
