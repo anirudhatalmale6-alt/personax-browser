@@ -1671,10 +1671,9 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 	// Remove old MV2 proxy-auth extensions (unsupported in latest Chromium)
 	os.RemoveAll(filepath.Join(dataDir, "proxy-auth", profile.ID))
 
-	// Clean Chrome's cached extension state to prevent loading old extensions
+	// Only clean Extensions dir (Chrome re-loads from --load-extension)
+	// Keep Extension State and Local Extension Settings to avoid preference resets
 	os.RemoveAll(filepath.Join(profileDir, "Default", "Extensions"))
-	os.RemoveAll(filepath.Join(profileDir, "Default", "Extension State"))
-	os.RemoveAll(filepath.Join(profileDir, "Default", "Local Extension Settings"))
 
 	args := []string{
 		"--user-data-dir=" + profileDir,
@@ -1763,9 +1762,38 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 		}
 	}
 
-	// Clean session restore data that causes duplicate tabs (but keep Preferences for logins)
 	prefsDir := filepath.Join(profileDir, "Default")
 	os.MkdirAll(prefsDir, 0755)
+
+	// Fix exit_type in Preferences to prevent Chrome from thinking it crashed
+	// A "Crashed" exit_type can cause Chrome to clear session data or show recovery
+	prefsPath := filepath.Join(prefsDir, "Preferences")
+	if prefsData, err := os.ReadFile(prefsPath); err == nil {
+		var prefs map[string]interface{}
+		if json.Unmarshal(prefsData, &prefs) == nil {
+			modified := false
+			if profile, ok := prefs["profile"].(map[string]interface{}); ok {
+				if profile["exit_type"] != "Normal" {
+					profile["exit_type"] = "Normal"
+					modified = true
+				}
+				// Ensure cookies are NOT set to clear on exit
+				if dcs, ok := profile["default_content_setting_values"].(map[string]interface{}); ok {
+					if _, exists := dcs["cookies"]; !exists {
+						dcs["cookies"] = 1 // 1 = allow
+						modified = true
+					}
+				}
+			}
+			if modified {
+				if out, err := json.MarshalIndent(prefs, "", "  "); err == nil {
+					os.WriteFile(prefsPath, out, 0644)
+				}
+			}
+		}
+	}
+
+	// Clean session restore files to prevent duplicate tabs
 	os.Remove(filepath.Join(prefsDir, "Current Session"))
 	os.Remove(filepath.Join(prefsDir, "Current Tabs"))
 	os.Remove(filepath.Join(prefsDir, "Last Session"))
