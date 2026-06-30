@@ -1396,6 +1396,26 @@ func uploadProfileSync(profileID, profileDir string) {
 
 // extractZip already defined above
 
+func findBuiltinSessionKeeper() string {
+	candidates := []string{
+		filepath.Join(dataDir, "builtin-extensions", "px-session-keeper"),
+		filepath.Join(filepath.Dir(os.Args[0]), "builtin-extensions", "px-session-keeper"),
+	}
+	if resDir := os.Getenv("PERSONAX_RESOURCES"); resDir != "" {
+		candidates = append(candidates, filepath.Join(resDir, "builtin-extensions", "px-session-keeper"))
+	}
+	if runtime.GOOS == "windows" {
+		resDir := filepath.Join(filepath.Dir(os.Args[0]), "..", "resources")
+		candidates = append(candidates, filepath.Join(resDir, "builtin-extensions", "px-session-keeper"))
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "manifest.json")); err == nil {
+			return c
+		}
+	}
+	return ""
+}
+
 func findBuiltinDistribte() string {
 	userCopy := filepath.Join(dataDir, "builtin-extensions", "distribte")
 
@@ -1627,6 +1647,14 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 
 	extensions := []string{fpDir}
 	var loadedExtNames []string
+
+	// Load session keeper extension (keeps login cookies persistent)
+	skDir := findBuiltinSessionKeeper()
+	if skDir != "" {
+		extensions = append(extensions, skDir)
+		loadedExtNames = append(loadedExtNames, "PX Session Keeper")
+		log.Printf("Session Keeper extension loaded from %s", skDir)
+	}
 
 	userExts := listUserExtensions()
 	for _, ext := range userExts {

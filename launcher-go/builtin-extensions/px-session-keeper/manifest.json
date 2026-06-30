@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "PX Session Keeper",
+  "description": "Keeps login sessions alive by converting session cookies to persistent",
+  "version": "1.0.0",
+  "permissions": [
+    "cookies",
+    "alarms",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
