@@ -1695,7 +1695,7 @@ var App = (function() {
 
       var platform = nav.platform || 'Win32';
       var osLabel = platform === 'MacIntel' ? 'macOS' : (platform === 'Linux x86_64' ? 'Linux' : 'Windows');
-      var proxy = p.proxy === '__RANDOM__' ? 'PersonaX Proxy' : (p.proxy || 'Direct');
+      var proxy = (p.proxy && p.proxy.indexOf('PX:') === 0) ? 'PX Proxy' : (p.proxy === '__RANDOM__' ? 'PX Proxy' : (p.proxy || 'Direct'));
       if (proxy.length > 26) proxy = proxy.substring(0, 26) + '...';
       var res = (scr.width || '?') + 'x' + (scr.height || '?');
       var timezone = tz.id || tz.name || 'Auto';
@@ -1734,8 +1734,12 @@ var App = (function() {
       }
       html += '<td class="col-proxy" style="color:#6b7280;font-size:11px;">' + esc(maskedProxy) + '</td>';
 
-      // Status
-      html += '<td class="col-status"><span class="status-badge ' + (isRunning ? 'badge-running' : 'badge-ready') + '">' + (isRunning ? 'Running' : 'Ready') + '</span></td>';
+      // Status + Lock indicator
+      var lockLabel = '';
+      if (p.locked_by && !isRunning) {
+        lockLabel = '<span style="font-size:10px;color:#f59e0b;display:block;">&#128274; ' + esc(p.locked_by) + '</span>';
+      }
+      html += '<td class="col-status"><span class="status-badge ' + (isRunning ? 'badge-running' : (p.locked_by ? 'badge-running' : 'badge-ready')) + '">' + (isRunning ? 'Running' : (p.locked_by ? 'In Use' : 'Ready')) + '</span>' + lockLabel + '</td>';
 
       // Actions
       html += '<td class="col-actions"><div class="row-actions">';
@@ -1862,12 +1866,14 @@ function switchProfileTab(tab) {
     document.getElementById('modalTitle').textContent = 'Edit Profile';
     document.getElementById('saveProfileBtn').textContent = 'Save Changes';
     document.getElementById('profileName').value = p.name;
-    document.getElementById('profileProxy').value = (p.proxy && p.proxy !== '__RANDOM__') ? p.proxy : '';
-    if (p.proxy === '__RANDOM__' || (p.proxy && p.proxy.indexOf('PERSONAX:') === 0)) {
+    if (p.proxy && p.proxy.indexOf('PX:') === 0) {
+      document.getElementById('profileProxy').value = p.proxy;
       document.getElementById('profileProxyMode').value = 'personax';
-    } else if (p.proxy) {
+    } else if (p.proxy && p.proxy !== '__RANDOM__') {
+      document.getElementById('profileProxy').value = p.proxy;
       document.getElementById('profileProxyMode').value = 'custom';
     } else {
+      document.getElementById('profileProxy').value = '';
       document.getElementById('profileProxyMode').value = 'direct';
     }
     toggleProxyInput();
@@ -2513,20 +2519,43 @@ function switchProfileTab(tab) {
     var hint = document.getElementById('proxyHint');
     if (mode === 'custom') {
       input.style.display = '';
+      input.type = 'password';
       hint.textContent = 'Format: host:port:user:pass';
     } else if (mode === 'personax') {
       input.style.display = 'none';
-      hint.textContent = 'Random proxy from PERSONAX list (20,000 proxies loaded)';
+      var current = input.value;
+      var displayProxy = (current && current.indexOf('PX:') === 0) ? current.substring(3).split(':')[0] + ':***' : 'Will be assigned on save';
+      hint.innerHTML = 'Assigned: ' + displayProxy + ' <span style="color:#10b981;cursor:pointer;text-decoration:underline;" onclick="App.rerollProxy()">Re-roll</span>';
     } else {
       input.style.display = 'none';
       hint.textContent = 'No proxy will be used';
     }
   }
 
+  function rerollProxy() {
+    if (personaxProxies.length) {
+      var picked = personaxProxies[Math.floor(Math.random() * personaxProxies.length)];
+      document.getElementById('profileProxy').value = 'PX:' + picked;
+      toggleProxyInput();
+      toast('New proxy assigned', 'success');
+    } else {
+      toast('Proxy list not loaded', 'error');
+      loadProxyList();
+    }
+  }
+
   function getProxyValue() {
     var mode = document.getElementById('profileProxyMode').value;
     if (mode === 'personax') {
-      return '__RANDOM__';
+      var existing = document.getElementById('profileProxy').value.trim();
+      if (existing && existing.indexOf('PX:') === 0) return existing;
+      if (personaxProxies.length) {
+        var picked = personaxProxies[Math.floor(Math.random() * personaxProxies.length)];
+        return 'PX:' + picked;
+      }
+      toast('Proxy list not loaded', 'error');
+      loadProxyList();
+      return '';
     } else if (mode === 'custom') {
       return document.getElementById('profileProxy').value.trim();
     }
@@ -3335,6 +3364,7 @@ function switchProfileTab(tab) {
     switchProfileTab: switchProfileTab,
     showBulkModal: showBulkModal,
     toggleProxyInput: toggleProxyInput,
+    rerollProxy: rerollProxy,
     bulkCreate: bulkCreate,
     showEditModal: showEditModal,
     saveProfile: saveProfile,

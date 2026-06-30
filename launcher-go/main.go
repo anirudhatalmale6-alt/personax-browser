@@ -1515,6 +1515,26 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 		return nil, fmt.Errorf("not connected to server")
 	}
 
+	// Lock profile before launching
+	lockUser := getMachineID()
+	if keyBytes, err := os.ReadFile(licenseFilePath()); err == nil {
+		lockUser = strings.TrimSpace(string(keyBytes))
+		if len(lockUser) > 12 {
+			lockUser = lockUser[:12]
+		}
+	}
+	lockPayload, _ := json.Marshal(map[string]string{"user": lockUser})
+	lockResp, err := httpClient.Post(srvURL+"/api/profiles/"+profileID+"/lock", "application/json", bytes.NewReader(lockPayload))
+	if err == nil {
+		lockBody, _ := io.ReadAll(lockResp.Body)
+		lockResp.Body.Close()
+		if lockResp.StatusCode == 409 {
+			var lockErr map[string]string
+			json.Unmarshal(lockBody, &lockErr)
+			return nil, fmt.Errorf("profile is already opened by %s", lockErr["locked_by"])
+		}
+	}
+
 	profileURL := srvURL + "/api/profiles/" + profileID
 	log.Printf("Fetching profile from %s", profileURL)
 
@@ -1596,20 +1616,26 @@ func prepareLaunch(profileID string) (*PrepareLaunchResult, error) {
 		args = append(args, "--user-agent="+profile.UserAgent)
 	}
 
-	// Handle proxy mode: random picks from pool, custom uses the stored proxy
-	if profile.ProxyMode == "random" || profile.Proxy == "__RANDOM__" {
+	// Handle PX: prefix (PersonaX pool proxy) - strip prefix to get actual proxy
+	if strings.HasPrefix(profile.Proxy, "PX:") {
+		profile.Proxy = strings.TrimPrefix(profile.Proxy, "PX:")
+		log.Printf("Using PersonaX pool proxy for profile %s", profile.ID)
+	}
+
+	// Legacy: handle __RANDOM__ by picking from pool and saving it
+	if profile.Proxy == "__RANDOM__" {
 		pool := loadDecryptedProxies()
 		if len(pool) > 0 {
 			profile.Proxy = pool[time.Now().UnixNano()%int64(len(pool))]
 			log.Printf("Random proxy assigned for profile %s: %s", profile.ID, profile.Proxy)
 		} else {
-			log.Printf("No proxies in pool for random assignment, launching without proxy")
+			log.Printf("No proxies in pool, launching without proxy")
 			profile.Proxy = ""
 		}
 	}
 
 	// If proxy has auth credentials, add proxy auth service worker to FP extension
-	if profile.Proxy != "" && profile.Proxy != "__RANDOM__" {
+	if profile.Proxy != "" {
 		parts := strings.SplitN(profile.Proxy, ":", 4)
 		if len(parts) >= 2 {
 			args = append(args, fmt.Sprintf("--proxy-server=%s:%s", parts[0], parts[1]))
@@ -1740,6 +1766,17 @@ func launchProfile(profileID string) (*LaunchResult, error) {
 		log.Printf("Profile %s closed, syncing data...", pID)
 		uploadProfileSync(pID, pDir)
 		log.Printf("Profile %s sync complete", pID)
+		// Unlock profile
+		mu.Lock()
+		srv := serverURL
+		mu.Unlock()
+		if srv != "" {
+			unlockResp, err := httpClient.Post(srv+"/api/profiles/"+pID+"/unlock", "application/json", bytes.NewReader([]byte("{}")))
+			if err == nil {
+				unlockResp.Body.Close()
+				log.Printf("Profile %s unlocked", pID)
+			}
+		}
 	}()
 
 	return &LaunchResult{ExtensionsLoaded: prepared.ExtensionsLoaded}, nil
